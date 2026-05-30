@@ -94,14 +94,13 @@ namespace FS
 
     FILE *Create(const std::string &path)
     {
-        FILE *fd = fopen(path.c_str(), "w");
-
+        FILE *fd = fopen(path.c_str(), "wb");
         return fd;
     }
 
     FILE *OpenRW(const std::string &path)
     {
-        FILE *fd = fopen(path.c_str(), "w+");
+        FILE *fd = fopen(path.c_str(), "wb+");
         return fd;
     }
 
@@ -113,7 +112,7 @@ namespace FS
 
     FILE *Append(const std::string &path)
     {
-        FILE *fd = fopen(path.c_str(), "a");
+        FILE *fd = fopen(path.c_str(), "ab");
         return fd;
     }
 
@@ -242,9 +241,70 @@ namespace FS
     std::vector<DirEntry> ListDir(const std::string &ppath, int *err)
     {
         std::vector<DirEntry> out;
-        DirEntry entry;
         std::string path = ppath;
 
+        if (path == "/")
+        {
+            *err = 0;
+            // Add /data
+            DirEntry entry_data;
+            memset(&entry_data, 0, sizeof(DirEntry));
+            sprintf(entry_data.directory, "/");
+            sprintf(entry_data.name, "data");
+            sprintf(entry_data.display_size, "%s", lang_strings[STR_FOLDER]);
+            sprintf(entry_data.path, "/data");
+            entry_data.file_size = 0;
+            entry_data.isDir = true;
+            entry_data.selectable = true;
+            out.push_back(entry_data);
+
+            // Add non-empty /mnt/*
+            DIR *mnt_fd = opendir("/mnt");
+            if (mnt_fd != NULL)
+            {
+                struct dirent *mnt_dir;
+                while ((mnt_dir = readdir(mnt_fd)) != NULL)
+                {
+                    if (strcmp(mnt_dir->d_name, ".") == 0 || strcmp(mnt_dir->d_name, "..") == 0)
+                        continue;
+
+                    std::string mnt_path = std::string("/mnt/") + mnt_dir->d_name;
+                    DIR *sub_fd = opendir(mnt_path.c_str());
+                    if (sub_fd != NULL)
+                    {
+                        bool is_empty = true;
+                        struct dirent *sub_dir;
+                        while ((sub_dir = readdir(sub_fd)) != NULL)
+                        {
+                            if (strcmp(sub_dir->d_name, ".") != 0 && strcmp(sub_dir->d_name, "..") != 0)
+                            {
+                                is_empty = false;
+                                break;
+                            }
+                        }
+                        closedir(sub_fd);
+
+                        if (!is_empty)
+                        {
+                            DirEntry entry_mnt;
+                            memset(&entry_mnt, 0, sizeof(DirEntry));
+                            sprintf(entry_mnt.directory, "/");
+                            sprintf(entry_mnt.name, "%s", mnt_path.c_str() + 1); // e.g. "mnt/usb0"
+                            sprintf(entry_mnt.display_size, "%s", lang_strings[STR_FOLDER]);
+                            sprintf(entry_mnt.path, "%s", mnt_path.c_str());
+                            entry_mnt.file_size = 0;
+                            entry_mnt.isDir = true;
+                            entry_mnt.selectable = true;
+                            out.push_back(entry_mnt);
+                        }
+                    }
+                }
+                closedir(mnt_fd);
+            }
+            return out;
+        }
+
+        DirEntry entry;
         memset(&entry, 0, sizeof(DirEntry));
         sprintf(entry.directory, "%s", path.c_str());
         sprintf(entry.name, "..");

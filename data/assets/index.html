@@ -2,7 +2,7 @@
 <html lang="en" data-ng-app="FileManagerApp">
 
 <head>
-  <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="utf-8">
   <title>ezRemote Client</title>
 
@@ -18,6 +18,7 @@
   <!-- Comment if you need to use raw source code -->
   <link href="/data/homebrew/ezremote-client/assets/res/angular-filemanager.min.css" rel="stylesheet">
   <script src="/data/homebrew/ezremote-client/assets/res/angular-filemanager.min.js"></script>
+  <link href="/data/homebrew/ezremote-client/assets/res/ezremote-ui.css" rel="stylesheet">
   <!-- /Comment if you need to use raw source code -->
 
   <script type="text/javascript">
@@ -40,10 +41,12 @@
         extractUrl: '/__local__/extract',
         permissionsUrl: '/__local__/permission',
         installUrl: '/__local__/install',
-        uploadResumeSizeUrl: '__local__/uploadResumeSize',
+        uploadResumeSizeUrl: '/__local__/uploadResumeSize',
+        CHUNK_SIZE: 128 * 1024 * 1024,
         installUrlUrl: '/__local__/install_url',
         downloadUrlUrl: '/__local__/download_url',
         multipleDownloadFileName: 'ezremote-client.zip',
+        sidebar: false,
         isExtractableFilePattern: /\.(7z|rar|zip)$/i,
         pickCallback: function (item) {
           var msg = 'Picked %s "%s" for external use'
@@ -58,9 +61,73 @@
       });
     }]);
   </script>
+  <script src="/data/homebrew/ezremote-client/assets/res/ezremote-ui.js"></script>
 </head>
 
-<body class="ng-cloak">
+<body class="ng-cloak ezremote-ui">
+  <div style="position: absolute; top: 10px; left: 180px; z-index: 1050; display: flex; gap: 10px;">
+    <button class="btn btn-primary btn-sm" onclick="testSpeed()" title="Test Raw Network Upload Speed (RAM to RAM)">
+      <i class="glyphicon glyphicon-dashboard"></i> Test Speed (RAM)
+    </button>
+    <button class="btn btn-info btn-sm" onclick="testSpeedMultipart()" title="Test Multipart Network Upload Speed (RAM to RAM)">
+      <i class="glyphicon glyphicon-dashboard"></i> Test Multipart (RAM)
+    </button>
+    <input type="file" id="speedtestFile" style="display:none;" onchange="testSpeedFile(this.files)">
+    <button class="btn btn-warning btn-sm" onclick="document.getElementById('speedtestFile').click()" title="Test Real File Upload Speed (Disk to RAM)">
+      <i class="glyphicon glyphicon-dashboard"></i> Test Real File (Disk)
+    </button>
+  </div>
+  <script type="text/javascript">
+    function testSpeed() {
+      var d = new Uint8Array(200 * 1024 * 1024);
+      var x = new XMLHttpRequest();
+      x.open("POST", "/speedtest");
+      x.onload = function() {
+        try {
+          var r = JSON.parse(x.responseText);
+          alert("Server measured speed: " + r.result.mbps.toFixed(2) + " Mbps");
+        } catch(e) {
+          alert("Done");
+        }
+      };
+      x.send(d);
+    }
+
+    function testSpeedMultipart() {
+      var d = new Uint8Array(200 * 1024 * 1024);
+      var formData = new FormData();
+      formData.append("file", new Blob([d]), "test.bin");
+      var x = new XMLHttpRequest();
+      x.open("POST", "/speedtest_multipart");
+      x.onload = function() {
+        try {
+          var r = JSON.parse(x.responseText);
+          alert("Server measured multipart RAM speed: " + r.result.mbps.toFixed(2) + " Mbps");
+        } catch(e) {
+          alert("Done");
+        }
+      };
+      x.send(formData);
+    }
+
+    function testSpeedFile(files) {
+      if (!files || !files.length) return;
+      var file = files[0];
+      var formData = new FormData();
+      formData.append("file", file);
+      var x = new XMLHttpRequest();
+      x.open("POST", "/speedtest_multipart");
+      x.onload = function() {
+        try {
+          var r = JSON.parse(x.responseText);
+          alert("Server measured real file speed: " + r.result.mbps.toFixed(2) + " Mbps\n\nIf this is also ~180 Mbps, your PC's Disk Read Speed is the bottleneck!");
+        } catch(e) {
+          alert("Done");
+        }
+      };
+      x.send(formData);
+    }
+  </script>
   <angular-filemanager></angular-filemanager>
 </body>
 

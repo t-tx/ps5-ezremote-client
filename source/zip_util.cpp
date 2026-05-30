@@ -697,8 +697,7 @@ namespace ZipUtil
 
             if (Util::EndsWith(Util::ToLower(pathname), ".pkg"))
             {
-                pkg_entry = (ArchiveEntry *)malloc(sizeof(ArchiveEntry));
-                memset(pkg_entry, 0, sizeof(ArchiveEntry));
+                pkg_entry = new ArchiveEntry{};
 
                 pkg_entry->archive = a;
                 pkg_entry->entry = e;
@@ -771,8 +770,7 @@ namespace ZipUtil
 
             if (Util::EndsWith(Util::ToLower(pathname), ".pkg"))
             {
-                pkg_entry = (ArchiveEntry *)malloc(sizeof(ArchiveEntry));
-                memset(pkg_entry, 0, sizeof(ArchiveEntry));
+                pkg_entry = new ArchiveEntry{};
 
                 pkg_entry->archive = a;
                 pkg_entry->entry = e;

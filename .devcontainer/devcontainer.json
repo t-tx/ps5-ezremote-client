@@ -1,0 +1,59 @@
+// =============================================================================
+// Dev Container configuration for ps5-ezremote-client
+//
+// This container provides a complete build environment for cross-compiling
+// PS5 homebrew payloads using the ps5-payload-dev/sdk.
+//
+// Usage:
+//   1. Open the repo in VS Code / GitHub Codespaces
+//   2. "Reopen in Container" (or auto-detected)
+//   3. Build:
+//        cd /workspace
+//        git submodule update --init --recursive
+//        cmake -B build -G Ninja \
+//              -DCMAKE_TOOLCHAIN_FILE=$PS5_PAYLOAD_SDK/toolchain/prospero.cmake
+//        cmake --build build
+//   4. Package:
+//        cmake --build build --target package
+// =============================================================================
+{
+    "name": "PS5 ezRemote Client Dev",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    "workspaceFolder": "/workspace",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+
+    // Ensure git submodules are initialised on container creation
+    "postCreateCommand": "git submodule update --init --recursive",
+
+    // Useful environment variables available in every terminal
+    "remoteEnv": {
+        "PS5_PAYLOAD_SDK": "/opt/ps5-payload-sdk"
+    },
+
+    // VS Code extensions useful for C/C++ PS5 development
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cmake-tools",
+                "twxs.cmake",
+                "ms-vscode.cpptools-extension-pack"
+            ],
+            "settings": {
+                "cmake.configureArgs": [
+                    "-DCMAKE_TOOLCHAIN_FILE=/opt/ps5-payload-sdk/toolchain/prospero.cmake"
+                ],
+                "cmake.generator": "Ninja",
+                "C_Cpp.default.compilerPath": "/opt/ps5-payload-sdk/bin/prospero-clang",
+                "C_Cpp.default.intelliSenseMode": "linux-clang-x64",
+                "terminal.integrated.defaultProfile.linux": "bash"
+            }
+        }
+    },
+
+    // Run as the non-root user created in the Dockerfile
+    "remoteUser": "vscode"
+}

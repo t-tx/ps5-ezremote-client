@@ -97,10 +97,14 @@ std::vector<DirEntry> IISClient::ListDir(const std::string &path)
                 else if (node->type == LXB_DOM_NODE_TYPE_TEXT)
                 {
                     name = lxb_dom_node_text_content(node, &name_len);
-                    std::vector<std::string> tokens = Util::Split(std::string((const char *)name, name_len), " ");
-                    if (tokens.size() == 4)
+                    std::string text_content((const char *)name, name_len);
+                    text_content = Util::Trim(text_content, " \r\n\t");
+                    std::vector<std::string> tokens = Util::Split(text_content, " ");
+                    
+                    if (tokens.size() >= 3)
                     {
-                        if (tokens[3].compare("<dir>") == 0)
+                        std::string size_or_dir = tokens.back();
+                        if (size_or_dir.compare("<dir>") == 0)
                         {
                             entry.isDir = true;
                             entry.selectable = true;
@@ -111,7 +115,7 @@ std::vector<DirEntry> IISClient::ListDir(const std::string &path)
                         {
                             entry.isDir = false;
                             entry.selectable = true;
-                            entry.file_size = atoll(tokens[3].c_str());
+                            entry.file_size = atoll(size_or_dir.c_str());
                             DirEntry::SetDisplaySize(&entry);
                         }
 
@@ -130,10 +134,10 @@ std::vector<DirEntry> IISClient::ListDir(const std::string &path)
                             entry.modified.minutes = atoi(atime[1].c_str());
                         }
 
-                        if (tokens[3].compare("PM") == 0)
+                        if (tokens.size() >= 4 && tokens[tokens.size() - 2].compare("PM") == 0)
                         {
                             if (entry.modified.hours < 12)
-                                entry.modified.hours += 11;
+                                entry.modified.hours += 12;
                         }
                     }
                 }

@@ -4,6 +4,7 @@
 #include <json-c/json.h>
 #include <lexbor/html/parser.h>
 #include <lexbor/dom/interfaces/element.h>
+#include <regex>
 #include <minizip/unzip.h>
 #include "clients/smbclient.h"
 #include "clients/webdav.h"
@@ -42,25 +43,79 @@ namespace Actions
         return 1;
     }
 
+    static void RecursiveSearchLocal(const std::string& path, const std::regex& re, int current_layer, int max_layer, std::vector<DirEntry>& results, const std::string& relative_prefix)
+    {
+        if (current_layer > max_layer)
+            return;
+
+        int err = 0;
+        std::vector<DirEntry> temp_files = FS::ListDir(path, &err);
+        if (err != 0) return;
+
+        for (auto& entry : temp_files)
+        {
+            if (strcmp(entry.name, "..") == 0)
+                continue;
+
+            // Search by name
+            if (std::regex_search(entry.name, re))
+            {
+                DirEntry matched_entry = entry;
+                std::string rel_name = relative_prefix + entry.name;
+                snprintf(matched_entry.name, sizeof(matched_entry.name), "%s", rel_name.c_str());
+                results.push_back(matched_entry);
+            }
+
+            // Recurse into directories
+            if (entry.isDir)
+            {
+                std::string next_prefix = relative_prefix + entry.name + "/";
+                RecursiveSearchLocal(entry.path, re, current_layer + 1, max_layer, results, next_prefix);
+            }
+        }
+    }
+
     void RefreshLocalFiles(bool apply_filter)
     {
         multi_selected_local_files.clear();
         local_files.clear();
-        int err;
+        int err = 0;
         if (strlen(local_filter) > 0 && apply_filter)
         {
-            std::vector<DirEntry> temp_files = FS::ListDir(local_directory, &err);
-            std::string lower_filter = Util::ToLower(local_filter);
-            for (std::vector<DirEntry>::iterator it = temp_files.begin(); it != temp_files.end();)
-            {
-                std::string lower_name = Util::ToLower(it->name);
-                if (lower_name.find(lower_filter) != std::string::npos || strcmp(it->name, "..") == 0)
-                {
-                    local_files.push_back(*it);
-                }
-                ++it;
+            std::regex re;
+            bool valid_regex = true;
+            try {
+                re = std::regex(local_filter, std::regex_constants::icase);
+            } catch (const std::regex_error& e) {
+                valid_regex = false;
             }
-            temp_files.clear();
+
+            DirEntry up_entry;
+            memset(&up_entry, 0, sizeof(DirEntry));
+            sprintf(up_entry.directory, "%s", local_directory);
+            sprintf(up_entry.name, "..");
+            sprintf(up_entry.display_size, "%s", lang_strings[STR_FOLDER]);
+            sprintf(up_entry.path, "%s", local_directory);
+            up_entry.file_size = 0;
+            up_entry.isDir = true;
+            up_entry.selectable = false;
+            local_files.push_back(up_entry);
+
+            if (valid_regex) {
+                RecursiveSearchLocal(local_directory, re, 0, 2, local_files, "");
+            } else {
+                std::vector<DirEntry> temp_files = FS::ListDir(local_directory, &err);
+                std::string lower_filter = Util::ToLower(local_filter);
+                for (std::vector<DirEntry>::iterator it = temp_files.begin(); it != temp_files.end(); ++it)
+                {
+                    std::string lower_name = Util::ToLower(it->name);
+                    if (lower_name.find(lower_filter) != std::string::npos)
+                    {
+                        if (strcmp(it->name, "..") != 0)
+                            local_files.push_back(*it);
+                    }
+                }
+            }
         }
         else
         {
@@ -787,8 +842,7 @@ namespace Actions
                         {
                             snprintf(activity_message, 1023, "%s %s", lang_strings[STR_INSTALLING], entry->filename.c_str());
 
-                            ArchivePkgInstallData *install_data = (ArchivePkgInstallData*) malloc(sizeof(ArchivePkgInstallData));
-                            memset(install_data, 0, sizeof(ArchivePkgInstallData));
+                            ArchivePkgInstallData *install_data = new ArchivePkgInstallData{};
 
                             std::string install_pkg_path = std::string(temp_folder) + "/" + entry->filename;
                             SplitFile *sp = new SplitFile(install_pkg_path, INSTALL_ARCHIVE_PKG_SPLIT_SIZE);
@@ -803,7 +857,7 @@ namespace Actions
 
                             ArchiveEntry *previos = entry;
                             entry = ZipUtil::GetNextPackageEntry(entry);
-                            free(previos);
+                            delete previos;
                         }
                         success++;
                     }
@@ -949,8 +1003,7 @@ namespace Actions
                     {
                         while (entry != nullptr)
                         {
-                            ArchivePkgInstallData *install_data = (ArchivePkgInstallData*) malloc(sizeof(ArchivePkgInstallData));
-                            memset(install_data, 0, sizeof(ArchivePkgInstallData));
+                            ArchivePkgInstallData *install_data = new ArchivePkgInstallData{};
 
                             std::string install_pkg_path = std::string(temp_folder) + "/" + entry->filename;
                             SplitFile *sp = new SplitFile(install_pkg_path, INSTALL_ARCHIVE_PKG_SPLIT_SIZE);
@@ -1245,6 +1298,9 @@ namespace Actions
         json_object_object_add(params, "use_alldebrid", json_object_new_boolean(install_pkg_url.enable_alldebrid));
         json_object_object_add(params, "use_realdebrid", json_object_new_boolean(install_pkg_url.enable_realdebrid));
         json_object_object_add(params, "use_disk_cache", json_object_new_boolean(install_pkg_url.enable_disk_cache));
+        json_object_object_add(params, "enable_rpi", json_object_new_boolean(install_pkg_url.enable_rpi));
+        json_object_object_add(params, "username", json_object_new_string(install_pkg_url.username));
+        json_object_object_add(params, "password", json_object_new_string(install_pkg_url.password));
 
         const char *params_str = json_object_to_json_string(params);
 

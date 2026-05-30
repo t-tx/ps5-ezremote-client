@@ -221,4 +221,27 @@ Czech
 ```
 or any other language that you have a traslation for.
 
+## Building from Source
 
+To build the project and its dependencies, a `Makefile` is provided. It acts as a wrapper around the dependency scripts and CMake configuration. 
+
+Ensure that you have the PS5 Payload SDK set up and the `PS5_PAYLOAD_SDK` environment variable defined.
+
+1.  **Build Dependencies:**
+    To cross-compile all required third-party libraries for the PS5, run:
+    ```bash
+    make deps
+    ```
+
+2.  **Build the Project:**
+    To configure and compile the main project (along with the background server submodule), run:
+    ```bash
+    make build
+    ```
+    or simply `make`. The compiled `.elf` files will be output to the `build/` directory.
+
+3.  **Clean:**
+    To clean the build directory, run:
+    ```bash
+    make clean
+    ```

@@ -562,7 +562,7 @@ private:
   size_t read_buff_off_ = 0;
   size_t read_buff_content_size_ = 0;
 
-  static const size_t read_buff_size_ = 1024 * 512;
+  static const size_t read_buff_size_ = 1024 * 1024 * 2;
 };
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
@@ -770,7 +770,7 @@ socket_t create_socket(const std::string &host, const std::string &ip, int port,
 #endif
     }
 
-    int const size = 1048576;
+    int const size = 8388608;
     setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
     setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
 
@@ -952,7 +952,7 @@ socket_t create_client_socket(
                      reinterpret_cast<const void *>(&tv), sizeof(tv));
 #endif
 
-          int const size = 1048576;
+          int const size = 8388608;
           setsockopt(sock2, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
           setsockopt(sock2, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
         }
@@ -1531,15 +1531,15 @@ bool read_headers(Stream &strm, Headers &headers) {
 bool read_content_with_length(Stream &strm, uint64_t len,
                                      Progress progress,
                                      ContentReceiverWithProgress out) {
-  char buf[CPPHTTPLIB_RECV_BUFSIZ];
+  std::vector<char> buf(CPPHTTPLIB_RECV_BUFSIZ);
 
   uint64_t r = 0;
   while (r < len) {
     auto read_len = static_cast<size_t>(len - r);
-    auto n = strm.read(buf, (std::min)(read_len, CPPHTTPLIB_RECV_BUFSIZ));
+    auto n = strm.read(buf.data(), (std::min)(read_len, static_cast<size_t>(CPPHTTPLIB_RECV_BUFSIZ)));
     if (n <= 0) { return false; }
 
-    if (!out(buf, static_cast<size_t>(n), r, len)) { return false; }
+    if (!out(buf.data(), static_cast<size_t>(n), r, len)) { return false; }
     r += static_cast<uint64_t>(n);
 
     if (progress) {
@@ -1551,11 +1551,11 @@ bool read_content_with_length(Stream &strm, uint64_t len,
 }
 
 void skip_content_with_length(Stream &strm, uint64_t len) {
-  char buf[CPPHTTPLIB_RECV_BUFSIZ];
+  std::vector<char> buf(CPPHTTPLIB_RECV_BUFSIZ);
   uint64_t r = 0;
   while (r < len) {
     auto read_len = static_cast<size_t>(len - r);
-    auto n = strm.read(buf, (std::min)(read_len, CPPHTTPLIB_RECV_BUFSIZ));
+    auto n = strm.read(buf.data(), (std::min)(read_len, static_cast<size_t>(CPPHTTPLIB_RECV_BUFSIZ)));
     if (n <= 0) { return; }
     r += static_cast<uint64_t>(n);
   }
@@ -1563,17 +1563,17 @@ void skip_content_with_length(Stream &strm, uint64_t len) {
 
 bool read_content_without_length(Stream &strm,
                                         ContentReceiverWithProgress out) {
-  char buf[CPPHTTPLIB_RECV_BUFSIZ];
+  std::vector<char> buf(CPPHTTPLIB_RECV_BUFSIZ);
   uint64_t r = 0;
   for (;;) {
-    auto n = strm.read(buf, CPPHTTPLIB_RECV_BUFSIZ);
+    auto n = strm.read(buf.data(), CPPHTTPLIB_RECV_BUFSIZ);
     if (n < 0) {
       return false;
     } else if (n == 0) {
       return true;
     }
 
-    if (!out(buf, static_cast<size_t>(n), r, 0)) { return false; }
+    if (!out(buf.data(), static_cast<size_t>(n), r, 0)) { return false; }
     r += static_cast<uint64_t>(n);
   }
 
@@ -2219,17 +2219,15 @@ private:
 
     size_t off = buf_spos_;
     while (off < buf_epos_) {
-      auto pos = off;
-      while (true) {
-        if (pos == buf_epos_) { return buf_size(); }
-        if (buf_[pos] == c) { break; }
-        pos++;
-      }
+      const void* res = memchr(&buf_[off], c, buf_epos_ - off);
+      if (!res) { return buf_size(); }
+      
+      auto pos = static_cast<size_t>(static_cast<const char*>(res) - &buf_[0]);
 
       auto remaining_size = buf_epos_ - pos;
       if (s.size() > remaining_size) { return buf_size(); }
 
-      if (start_with(buf_, pos, buf_epos_, s)) { return pos - buf_spos_; }
+      if (memcmp(&buf_[pos], s.data(), s.size()) == 0) { return pos - buf_spos_; }
 
       off = pos + 1;
     }
@@ -2240,18 +2238,14 @@ private:
   void buf_append(const char *data, size_t n) {
     auto remaining_size = buf_size();
     if (remaining_size > 0 && buf_spos_ > 0) {
-      for (size_t i = 0; i < remaining_size; i++) {
-        buf_[i] = buf_[buf_spos_ + i];
-      }
+      memmove(&buf_[0], &buf_[buf_spos_], remaining_size);
     }
     buf_spos_ = 0;
     buf_epos_ = remaining_size;
 
     if (remaining_size + n > buf_.size()) { buf_.resize(remaining_size + n); }
 
-    for (size_t i = 0; i < n; i++) {
-      buf_[buf_epos_ + i] = data[i];
-    }
+    memcpy(&buf_[buf_epos_], data, n);
     buf_epos_ += n;
   }
 
@@ -3958,7 +3952,7 @@ bool Server::listen_internal() {
 #endif
       }
 
-      int const size = 1048576;
+      int const size = 8388608;
       setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
       setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
 

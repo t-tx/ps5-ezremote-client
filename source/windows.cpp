@@ -302,8 +302,8 @@ namespace Windows
     {
         ImGuiStyle *style = &ImGui::GetStyle();
         ImVec4 *colors = style->Colors;
-        static char title[64];
-        sprintf(title, "ezRemote %s", lang_strings[STR_CONNECTION_SETTINGS]);
+        static char title[256];
+        sprintf(title, "ezRemote %s (v1.1.9)", lang_strings[STR_CONNECTION_SETTINGS]);
         BeginGroupPanel(title, ImVec2(1905, 100));
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
         char id[256];
@@ -351,6 +351,7 @@ namespace Windows
                     sprintf(display_site, "%s", site_id);
                     remote_settings = &site_settings[sites[n]];
                     sprintf(remote_directory, "%s", remote_settings->default_directory);
+                    selected_action = ACTION_CONNECT;
                 }
 
                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -523,16 +524,22 @@ namespace Windows
         ImVec2 size = ImGui::CalcTextSize(local_directory);
         ImGui::SetCursorPosX(posX + 180);
         ImGui::PushID("local_directory##local");
-        pos = ImGui::GetCursorPos();
-        if (ImGui::Button(local_directory, ImVec2(569, 0)))
+        ImGui::SetNextItemWidth(569);
+        if (ImGui::BeginCombo("##local_dir_combo", local_directory, ImGuiComboFlags_HeightLarge))
         {
-            ime_single_field = local_directory;
-            ResetImeCallbacks();
-            ime_field_size = 255;
-            ime_after_update = AfterLocalFileChangesCallback;
-            ime_callback = SingleValueImeCallback;
-            Dialog::initImeDialog(lang_strings[STR_DIRECTORY], local_directory, 256, SCE_IME_TYPE_DEFAULT, pos.x, pos.y);
-            gui_mode = GUI_MODE_IME;
+            std::vector<std::string> roots = Util::GetPathHierarchy(local_directory);
+            if (std::find(roots.begin(), roots.end(), "/") == roots.end()) roots.insert(roots.begin(), "/");
+            if (std::find(roots.begin(), roots.end(), "/data") == roots.end()) roots.insert(roots.begin() + 1, "/data");
+
+            for (size_t i = 0; i < roots.size(); i++) {
+                bool is_selected = (strcmp(local_directory, roots[i].c_str()) == 0);
+                if (ImGui::Selectable(roots[i].c_str(), is_selected)) {
+                    sprintf(local_directory, "%s", roots[i].c_str());
+                    selected_action = ACTION_REFRESH_LOCAL_FILES;
+                }
+                if (is_selected) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
         }
         ImGui::PopID();
         ImGui::PopStyleVar();
@@ -562,7 +569,7 @@ namespace Windows
         ImGui::SameLine();
         ImGui::SetCursorPosX(posX + 180);
         ImGui::PushID("local_filter##local");
-        if (ImGui::Button(local_filter, ImVec2(569, 0)))
+        if (ImGui::Button(local_filter, ImVec2(439, 0)))
         {
             ime_single_field = local_filter;
             ResetImeCallbacks();
@@ -585,6 +592,21 @@ namespace Windows
         {
             ImGui::BeginTooltip();
             ImGui::Text("%s", lang_strings[STR_SEARCH]);
+            ImGui::EndTooltip();
+        }
+        ImGui::SameLine();
+
+        ImGui::PushID("find_pkgs##local");
+        if (ImGui::Button("Find PKGs", ImVec2(120, 0)))
+        {
+            sprintf(local_filter, ".*\\.pkg");
+            selected_action = ACTION_APPLY_LOCAL_FILTER;
+        }
+        ImGui::PopID();
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::BeginTooltip();
+            ImGui::Text("Find all .pkg files recursively");
             ImGui::EndTooltip();
         }
 
@@ -710,16 +732,20 @@ namespace Windows
         size = ImGui::CalcTextSize(remote_directory);
         ImGui::SetCursorPosX(posX + 180);
         ImGui::PushID("remote_directory##remote");
-        pos = ImGui::GetCursorPos();
-        if (ImGui::Button(remote_directory, ImVec2(569, 0)))
+        if (ImGui::BeginCombo("##remote_dir_combo", remote_directory, ImGuiComboFlags_HeightLarge))
         {
-            ime_single_field = remote_directory;
-            ResetImeCallbacks();
-            ime_field_size = 255;
-            ime_after_update = AfterRemoteFileChangesCallback;
-            ime_callback = SingleValueImeCallback;
-            Dialog::initImeDialog(lang_strings[STR_DIRECTORY], remote_directory, 256, SCE_IME_TYPE_DEFAULT, pos.x, pos.y);
-            gui_mode = GUI_MODE_IME;
+            std::vector<std::string> roots = Util::GetPathHierarchy(remote_directory);
+            if (std::find(roots.begin(), roots.end(), "/") == roots.end() && remote_directory[0] == '/') roots.insert(roots.begin(), "/");
+
+            for (size_t i = 0; i < roots.size(); i++) {
+                bool is_selected = (strcmp(remote_directory, roots[i].c_str()) == 0);
+                if (ImGui::Selectable(roots[i].c_str(), is_selected)) {
+                    sprintf(remote_directory, "%s", roots[i].c_str());
+                    selected_action = ACTION_REFRESH_REMOTE_FILES;
+                }
+                if (is_selected) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
         }
         ImGui::PopID();
         ImGui::PopStyleVar();

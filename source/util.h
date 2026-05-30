@@ -115,6 +115,41 @@ namespace Util
         }
     }
 
+    static std::vector<std::string> GetPathHierarchy(const std::string& path)
+    {
+        std::vector<std::string> parts;
+        if (path.empty()) return parts;
+        
+        std::string current = "";
+        if (path[0] == '/') {
+            parts.push_back("/");
+            current = "/";
+        }
+        
+        size_t pos = (path[0] == '/') ? 1 : 0;
+        while (pos < path.length()) {
+            size_t next = path.find('/', pos);
+            if (next == std::string::npos) {
+                std::string part = path.substr(pos);
+                if (!part.empty()) {
+                    if (current != "/") current += (current.empty() ? "" : "/");
+                    current += part;
+                    parts.push_back(current);
+                }
+                break;
+            } else {
+                std::string part = path.substr(pos, next - pos);
+                if (!part.empty()) {
+                    if (current != "/") current += (current.empty() ? "" : "/");
+                    current += part;
+                    parts.push_back(current);
+                }
+                pos = next + 1;
+            }
+        }
+        return parts;
+    }
+
     static std::string ToLower(std::string s)
     {
         std::transform(s.begin(), s.end(), s.begin(),

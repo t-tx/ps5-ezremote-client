@@ -1,5 +1,14 @@
 #include <string>
+#include <chrono>
+#include <atomic>
+#include <unistd.h>
+#include <fcntl.h>
 #include <shared_mutex>
+#include <vector>
+#include <queue>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <json-c/json.h>
 #include <server/range_parser.h>
 #include "http/httplib.h"
@@ -29,6 +38,8 @@
 #define FAILURE_MSG "{ \"result\": { \"success\": false, \"error\": \"%s\" } }"
 #define SUCCESS_MSG_LEN 48
 #define PKG_INITIAL_REQUEST_SIZE 8388608ul
+#define WEB_UPLOAD_PAYLOAD_MAX_LENGTH (static_cast<size_t>(2ull * 1024ull * 1024ull * 1024ull))
+
 
 std::shared_mutex mutex_;
 
@@ -131,20 +142,16 @@ namespace HttpServer
             FS::MkDirs(dest);
             for (int i = 0; i < entries.size(); i++)
             {
-                int path_length = strlen(dest) + strlen(entries[i].name) + 2;
-                char *new_path = (char *)malloc(path_length);
-                snprintf(new_path, path_length, "%s%s%s", dest, FS::hasEndSlash(dest) ? "" : "/", entries[i].name);
-
+                std::string new_path = std::string(dest) + (FS::hasEndSlash(dest) ? "" : "/") + entries[i].name;
                 if (entries[i].isDir)
                 {
                     if (strcmp(entries[i].name, "..") == 0)
                         continue;
 
                     FS::MkDirs(new_path);
-                    ret = CopyOrMove(entries[i], new_path, isCopy);
+                    ret = CopyOrMove(entries[i], new_path.c_str(), isCopy);
                     if (ret <= 0)
                     {
-                        free(new_path);
                         return ret;
                     }
                 }
@@ -152,42 +159,62 @@ namespace HttpServer
                 {
                     if (isCopy)
                     {
-                        ret = FS::Copy(entries[i].path, new_path);
+                        ret = FS::Copy(entries[i].path, new_path.c_str());
                     }
                     else
                     {
-                        ret = FS::Move(entries[i].path, new_path);
+                        ret = FS::Move(entries[i].path, new_path.c_str());
                     }
                     if (ret <= 0)
                     {
-                        free(new_path);
                         return ret;
                     }
                 }
-                free(new_path);
             }
         }
         else
         {
-            int path_length = strlen(dest) + strlen(src.name) + 2;
-            char *new_path = (char *)malloc(path_length);
-            snprintf(new_path, path_length, "%s%s%s", dest, FS::hasEndSlash(dest) ? "" : "/", src.name);
+            std::string new_path = std::string(dest) + (FS::hasEndSlash(dest) ? "" : "/") + src.name;
             if (isCopy)
             {
-                ret = FS::Copy(src.path, new_path);
+                ret = FS::Copy(src.path, new_path.c_str());
             }
             else
             {
-                ret = FS::Move(src.path, new_path);
+                ret = FS::Move(src.path, new_path.c_str());
             }
             if (ret <= 0)
             {
-                free(new_path);
                 return 0;
             }
-            free(new_path);
         }
         return 1;
+    }
+
+    static std::mutex client_pool_mutex;
+    static std::map<int, std::vector<RemoteClient*>> client_pool;
+
+    static RemoteClient* GetPooledClient(int site_idx)
+    {
+        std::lock_guard<std::mutex> lock(client_pool_mutex);
+        auto& pool = client_pool[site_idx];
+        if (!pool.empty()) {
+            RemoteClient* client = pool.back();
+            pool.pop_back();
+            return client;
+        }
+        return INSTALLER::GetRemoteClient(site_idx);
+    }
+
+    static void ReleasePooledClient(int site_idx, RemoteClient *tmp_client)
+    {
+        if (site_idx == 98) {
+            tmp_client->Quit();
+            delete tmp_client;
+            return;
+        }
+        std::lock_guard<std::mutex> lock(client_pool_mutex);
+        client_pool[site_idx].push_back(tmp_client);
     }
 
     static void DeleteRemoteClient(RemoteClient *tmp_client)
@@ -209,11 +236,11 @@ namespace HttpServer
                 size, "text/html",
                 [in](size_t offset, size_t length, DataSink &sink) {
                     size_t size_to_read = std::min(static_cast<size_t>(length), (size_t)1048576);
-                    char buff[size_to_read];
+                    std::vector<char> buff(size_to_read);
                     size_t read_len;
                     FS::Seek(in, offset);
-                    read_len = FS::Read(in, buff, size_to_read);
-                    sink.write(buff, read_len);
+                    read_len = FS::Read(in, buff.data(), size_to_read);
+                    sink.write(buff.data(), read_len);
                     return read_len == size_to_read;
                 },
                 [in](bool success) {
@@ -228,11 +255,11 @@ namespace HttpServer
                 size, "image/vnd.microsoft.icon",
                 [in](size_t offset, size_t length, DataSink &sink) {
                     size_t size_to_read = std::min(static_cast<size_t>(length), (size_t)1048576);
-                    char buff[size_to_read];
+                    std::vector<char> buff(size_to_read);
                     size_t read_len;
                     FS::Seek(in, offset);
-                    read_len = FS::Read(in, buff, size_to_read);
-                    sink.write(buff, read_len);
+                    read_len = FS::Read(in, buff.data(), size_to_read);
+                    sink.write(buff.data(), read_len);
                     return read_len == size_to_read;
                 },
                 [in](bool success) {
@@ -746,72 +773,137 @@ namespace HttpServer
 
         svr->Post("/__local__/upload", [&](const Request &req, Response &res, const ContentReader &content_reader)
         {
+            auto start_time = std::chrono::high_resolution_clock::now();
+            int64_t disk_write_time_ms = 0;
+            int64_t network_read_time_ms = 0;
+            int64_t file_open_time_ms = 0;
+            int64_t file_close_time_ms = 0;
+            
             MultipartFormDataItems items;
             std::string destination;
             size_t chunk_size = 0;
             size_t chunk_number = -1;
             size_t total_size = 0;
             size_t currentChunkSize = 0;
-            FILE *out = nullptr;
+            int out_fd = -1;
             std::string new_file;
-            content_reader(
+            bool upload_failed = false;
+            bool saw_file = false;
+            std::string upload_error;
+            size_t total_disk_bytes = 0;
+
+            auto fail_upload = [&](const std::string &msg) {
+                upload_failed = true;
+                if (upload_error.empty())
+                    upload_error = msg;
+                return false;
+            };
+
+            auto read_start = std::chrono::high_resolution_clock::now();
+            bool read_ok = content_reader(
                 [&](const MultipartFormData &item)
                 {
+                    if (upload_failed) return false;
+                    
                     items.push_back(item);
                     if (item.name == "file")
                     {
-                        new_file = destination + "/" + item.filename;
-                        if (out != nullptr)
-                        {
-                            FS::Close(out);
-                        }
+                        saw_file = true;
+                        if (item.filename.empty())
+                            return fail_upload("Upload filename is missing.");
 
-                        if (chunk_number == 0)
-                            out = FS::Create(new_file);
+                        if (destination.empty())
+                            return fail_upload("Upload destination is missing.");
+
+                        new_file = destination + "/" + item.filename;
+                        
+                        auto open_start = std::chrono::high_resolution_clock::now();
+                        if (chunk_number == static_cast<size_t>(-1) || chunk_number == 0)
+                            out_fd = open(new_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
                         else if (chunk_number > 0)
-                            out = FS::Append(new_file);
+                            out_fd = open(new_file.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+                        auto open_end = std::chrono::high_resolution_clock::now();
+                        file_open_time_ms += std::chrono::duration_cast<std::chrono::milliseconds>(open_end - open_start).count();
+
+                        if (out_fd == -1)
+                            return fail_upload("Failed to open upload destination.");
                     }
                     return true;
                 },
                 [&](const char *data, size_t data_length)
                 {
-                    items.back().content.append(data, data_length);
-                    if (items.back().name == "destination")
+                    if (upload_failed) return false;
+                    
+                    if (items.empty()) return fail_upload("Invalid multipart upload data.");
+
+                    if (items.back().name != "file")
                     {
-                        destination = items.back().content;
-                    }
-                    else if (items.back().name == "_chunkSize")
-                    {
-                        std::stringstream ss(items.back().content);
-                        ss >> chunk_size;
-                    }
-                    else if (items.back().name == "_chunkNumber")
-                    {
-                        std::stringstream ss(items.back().content);
-                        ss >> chunk_number;
-                    }
-                    else if (items.back().name == "_totalSize")
-                    {
-                        std::stringstream ss(items.back().content);
-                        ss >> total_size;
-                    }
-                    else if (items.back().name == "_currentChunkSize")
-                    {
-                        std::stringstream ss(items.back().content);
-                        ss >> currentChunkSize;
+                        items.back().content.append(data, data_length);
+                        
+                        if (items.back().name == "destination") {
+                            destination = items.back().content;
+                        } else if (items.back().name == "_chunkNumber") {
+                            std::stringstream ss(items.back().content);
+                            ss >> chunk_number;
+                        }
                     }
                     else
                     {
-                        if (out != nullptr)
-                            FS::Write(out, data, data_length);
+                        if (out_fd != -1 && data_length > 0)
+                        {
+                            auto write_start = std::chrono::high_resolution_clock::now();
+                            int written = write(out_fd, data, data_length);
+                            auto write_end = std::chrono::high_resolution_clock::now();
+                            disk_write_time_ms += std::chrono::duration_cast<std::chrono::milliseconds>(write_end - write_start).count();
+                            
+                            if (written != static_cast<int>(data_length)) {
+                                return fail_upload("Failed to write uploaded file data.");
+                            }
+                            total_disk_bytes += written;
+                        }
                     }
                     return true;
                 });
-            if (out != nullptr)
+            
+            auto read_end = std::chrono::high_resolution_clock::now();
+            network_read_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(read_end - read_start).count();
+
+            if (!read_ok || upload_failed || !saw_file)
             {
-                FS::Close(out);
+                if (out_fd != -1)
+                {
+                    close(out_fd);
+                    out_fd = -1;
+                }
+
+                if (upload_error.empty()) {
+                    upload_error = res.status == 413 ? "Upload payload is too large." : "Failed to read uploaded file data.";
+                }
+
+                failed(res, 200, upload_error);
+                return;
             }
-            success(res); });
+
+            if (out_fd != -1)
+            {
+                auto close_start = std::chrono::high_resolution_clock::now();
+                close(out_fd);
+                auto close_end = std::chrono::high_resolution_clock::now();
+                file_close_time_ms += std::chrono::duration_cast<std::chrono::milliseconds>(close_end - close_start).count();
+            }
+            auto end_time = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+            
+            std::string result_str = "{ \"result\": { \"success\": true, \"error\": null, "
+                                     "\"duration_ms\": " + std::to_string(duration) + ", "
+                                     "\"disk_write_time_ms\": " + std::to_string(disk_write_time_ms) + ", "
+                                     "\"network_read_time_ms\": " + std::to_string(network_read_time_ms) + ", "
+                                     "\"file_open_time_ms\": " + std::to_string(file_open_time_ms) + ", "
+                                     "\"file_close_time_ms\": " + std::to_string(file_close_time_ms) + ", "
+                                     "\"total_disk_bytes\": " + std::to_string(total_disk_bytes) + 
+                                     "} }";
+            res.status = 200;
+            res.set_content(result_str.c_str(), result_str.length(), "application/json"); });
 
         // Download multiple files as ZIP
         svr->Get("/__local__/downloadMultiple", [&](const Request &req, Response &res)
@@ -854,11 +946,11 @@ namespace HttpServer
                     size, "application/octet-stream",
                     [in](size_t offset, size_t length, DataSink &sink) {
                         size_t size_to_read = std::min(static_cast<size_t>(length), (size_t)1048576);
-                        char buff[size_to_read];
+                        std::vector<char> buff(size_to_read);
                         size_t read_len;
                         FS::Seek(in, offset);
-                        read_len = FS::Read(in, buff, size_to_read);
-                        sink.write(buff, read_len);
+                        read_len = FS::Read(in, buff.data(), size_to_read);
+                        sink.write(buff.data(), read_len);
                         return read_len == size_to_read;
                     },
                     [in, zip_file](bool success) {
@@ -894,11 +986,11 @@ namespace HttpServer
                 size, "application/octet-stream",
                 [in](size_t offset, size_t length, DataSink &sink) {
                     size_t size_to_read = std::min(static_cast<size_t>(length), (size_t)1048576);
-                    char buff[size_to_read];
+                    std::vector<char> buff(size_to_read);
                     size_t read_len;
                     FS::Seek(in, offset);
-                    read_len = FS::Read(in, buff, size_to_read);
-                    sink.write(buff, read_len);
+                    read_len = FS::Read(in, buff.data(), size_to_read);
+                    sink.write(buff.data(), read_len);
                     return read_len == size_to_read;
                 },
                 [in](bool success) {
@@ -963,7 +1055,7 @@ namespace HttpServer
             if (site_idx != 98)
             {
                 path = std::string("/") + std::string(req.matches[3]);
-                tmp_client = INSTALLER::GetRemoteClient(site_idx);
+                tmp_client = GetPooledClient(site_idx);
             }
             else
             {
@@ -978,19 +1070,18 @@ namespace HttpServer
                 tmp_client->Connect(host, "", "", false);
             }
 
-            res.status = 206;
-            size_t range_len = (req.ranges[0].second - req.ranges[0].first) + 1;
-                
-            std::pair<ssize_t, ssize_t> range = req.ranges[0];
+            uint64_t file_size = 0;
+            tmp_client->Size(path, &file_size);
+
             res.set_content_provider(
-                range_len, "application/octet-stream",
-                [tmp_client, path, range, range_len](size_t offset, size_t length, DataSink &sink) {
+                file_size, "application/octet-stream",
+                [tmp_client, path](size_t offset, size_t length, DataSink &sink) {
                     int ret;
-                    ret = tmp_client->GetRange(path, sink, range_len, range.first);
+                    ret = tmp_client->GetRange(path, sink, length, offset);
                     return (ret==1);
                 },
-                [tmp_client](bool success) {
-                    DeleteRemoteClient(tmp_client);
+                [tmp_client, site_idx](bool success) {
+                    ReleasePooledClient(site_idx, tmp_client);
                 });
         });
 
@@ -999,16 +1090,13 @@ namespace HttpServer
             std::string hash = req.matches[1];
             ArchivePkgInstallData *pkg_data = INSTALLER::GetArchivePkgInstallData(hash);
 
-            res.status = 206;
-            size_t range_len = (req.ranges[0].second - req.ranges[0].first) + 1;
-            std::pair<ssize_t, ssize_t> range = req.ranges[0];
             res.set_content_provider(
-                range_len, "application/octet-stream",
-                [pkg_data, range, range_len](size_t offset, size_t length, DataSink &sink) {
-                    char *buf = (char*) malloc(range_len);
-                    size_t bytes_read = pkg_data->split_file->Read(buf, range_len, range.first);
-                    sink.write(buf, bytes_read);
-                    free(buf);
+                pkg_data->archive_entry->filesize, "application/octet-stream",
+                [pkg_data](size_t offset, size_t length, DataSink &sink) {
+                    size_t size_to_read = std::min(static_cast<size_t>(length), (size_t)1048576);
+                    std::vector<char> buf(size_to_read);
+                    size_t bytes_read = pkg_data->split_file->Read(buf.data(), size_to_read, offset);
+                    sink.write(buf.data(), bytes_read);
                     return true;
                 },
                 [](bool success) {
@@ -1028,16 +1116,13 @@ namespace HttpServer
                 return;
             }
 
-            res.status = 206;
-            size_t range_len = (req.ranges[0].second - req.ranges[0].first) + 1;
-            std::pair<ssize_t, ssize_t> range = req.ranges[0];
             res.set_content_provider(
-                range_len, "application/octet-stream",
-                [pkg_data, range, range_len](size_t offset, size_t length, DataSink &sink) {
-                    char *buf = (char*) malloc(range_len);
-                    size_t bytes_read = pkg_data->split_file->Read(buf, range_len, range.first);
-                    sink.write(buf, bytes_read);
-                    free(buf);
+                pkg_data->size, "application/octet-stream",
+                [pkg_data](size_t offset, size_t length, DataSink &sink) {
+                    size_t size_to_read = std::min(static_cast<size_t>(length), (size_t)1048576);
+                    std::vector<char> buf(size_to_read);
+                    size_t bytes_read = pkg_data->split_file->Read(buf.data(), size_to_read, offset);
+                    sink.write(buf.data(), bytes_read);
                     return true;
                 },
                 [](bool success) {
@@ -1060,6 +1145,9 @@ namespace HttpServer
             bool use_disk_cache = false;
             bool enable_rpi = false;
 
+            std::string username = "";
+            std::string password = "";
+
             json_object *jobj = json_tokener_parse(req.body.c_str());
             if (jobj != nullptr)
             {
@@ -1068,6 +1156,12 @@ namespace HttpServer
                 use_realdebrid = json_object_get_boolean(json_object_object_get(jobj, "use_realdebrid"));
                 use_disk_cache = json_object_get_boolean(json_object_object_get(jobj, "use_disk_cache"));
                 enable_rpi = json_object_get_boolean(json_object_object_get(jobj, "enable_rpi"));
+                
+                json_object *user_obj = json_object_object_get(jobj, "username");
+                if (user_obj) username = json_object_get_string(user_obj);
+
+                json_object *pass_obj = json_object_object_get(jobj, "password");
+                if (pass_obj) password = json_object_get_string(pass_obj);
 
                 if (url_param == nullptr)
                 {
@@ -1130,7 +1224,7 @@ namespace HttpServer
             pkg_header header;
 
             BaseClient *baseclient = new BaseClient();
-            baseclient->Connect(host, "", "");
+            baseclient->Connect(host, username, password);
             
             if (!baseclient->FileExists(path))
             {
@@ -1187,8 +1281,7 @@ namespace HttpServer
                 }
                 else if (enable_rpi && use_disk_cache)
                 {
-                    SplitPkgInstallData *install_data = (SplitPkgInstallData*) malloc(sizeof(SplitPkgInstallData));
-                    memset(install_data, 0, sizeof(SplitPkgInstallData));
+                    SplitPkgInstallData *install_data = new SplitPkgInstallData{};
 
                     std::string install_pkg_path = std::string(temp_folder) + "/" + std::to_string(Util::GetTick()) + ".pkg";
                     SplitFile *sp = new SplitFile(install_pkg_path, INSTALL_ARCHIVE_PKG_SPLIT_SIZE/2);
@@ -1219,8 +1312,7 @@ namespace HttpServer
                 ArchiveEntry *entry = ZipUtil::GetPackageEntry(path, baseclient);
                 if (entry != nullptr)
                 {
-                    ArchivePkgInstallData *install_data = (ArchivePkgInstallData*) malloc(sizeof(ArchivePkgInstallData));
-                    memset(install_data, 0, sizeof(ArchivePkgInstallData));
+                    ArchivePkgInstallData *install_data = new ArchivePkgInstallData{};
 
                     std::string install_pkg_path = std::string(temp_folder) + "/" + entry->filename;
                     SplitFile *sp = new SplitFile(install_pkg_path, INSTALL_ARCHIVE_PKG_SPLIT_SIZE);
@@ -1238,7 +1330,7 @@ namespace HttpServer
                         failed(res, 200, lang_strings[STR_FAIL_INSTALL_FROM_URL_MSG]);
                         activity_inprogess = false;
                         file_transfering = false;
-                        free(install_data);
+                        delete install_data;
                         Windows::SetModalMode(false);
                         return;
                     }
@@ -1359,9 +1451,57 @@ namespace HttpServer
             failed(res, 200, "Failed to download");
         });
 
-        svr->Get("/stop", [&](const Request & /*req*/, Response & /*res*/)
-        {
+        svr->Get("/stop", [&](const Request & /*req*/, Response & /*res*/) {
             svr->stop();
+        });
+
+        svr->Post("/speedtest", [&](const Request &req, Response &res, const ContentReader &content_reader)
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+            size_t total_received = 0;
+            
+            content_reader([&](const char *data, size_t data_length) {
+                total_received += data_length;
+                return true;
+            });
+            
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            
+            double mbps = 0;
+            if (duration_ms > 0) {
+                mbps = (static_cast<double>(total_received) * 8.0 / 1000000.0) / (static_cast<double>(duration_ms) / 1000.0);
+            }
+            
+            std::string result = "{ \"result\": { \"success\": true, \"duration_ms\": " + std::to_string(duration_ms) + ", \"total_bytes\": " + std::to_string(total_received) + ", \"mbps\": " + std::to_string(mbps) + " } }";
+            res.set_content(result, "application/json");
+        });
+
+        svr->Post("/speedtest_multipart", [&](const Request &req, Response &res, const ContentReader &content_reader)
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+            size_t total_received = 0;
+            
+            content_reader(
+                [&](const MultipartFormData &item) {
+                    return true;
+                },
+                [&](const char *data, size_t data_length) {
+                    total_received += data_length;
+                    return true;
+                }
+            );
+            
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            
+            double mbps = 0;
+            if (duration_ms > 0) {
+                mbps = (static_cast<double>(total_received) * 8.0 / 1000000.0) / (static_cast<double>(duration_ms) / 1000.0);
+            }
+            
+            std::string result = "{ \"result\": { \"success\": true, \"duration_ms\": " + std::to_string(duration_ms) + ", \"total_bytes\": " + std::to_string(total_received) + ", \"mbps\": " + std::to_string(mbps) + " } }";
+            res.set_content(result, "application/json");
         });
 
         svr->set_error_handler([](const Request & /*req*/, Response &res)
@@ -1379,7 +1519,7 @@ namespace HttpServer
         });
         */
        
-        svr->set_payload_max_length(1024 * 1024 * 12);
+        svr->set_payload_max_length(WEB_UPLOAD_PAYLOAD_MAX_LENGTH);
         svr->set_tcp_nodelay(true);
         svr->set_mount_point("/", "/");
 

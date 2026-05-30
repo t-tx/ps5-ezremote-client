@@ -263,7 +263,7 @@ namespace INSTALLER
 			archive_pkg_data->split_file->Close();
 		pthread_join(archive_pkg_data->thread, NULL);
 		delete (archive_pkg_data->split_file);
-		free(archive_pkg_data);
+		delete archive_pkg_data;
 		return nullptr;
 	}
 
@@ -276,7 +276,7 @@ namespace INSTALLER
 		delete (split_pkg_data->split_file);
 		if (split_pkg_data->delete_client)
 			delete (split_pkg_data->remote_client);
-		free(split_pkg_data);
+		delete split_pkg_data;
 		return nullptr;
 	}
 
@@ -332,13 +332,13 @@ namespace INSTALLER
 		{
 			ret = pthread_create(&bk_clean_thid, NULL, CleanArchivePkgDataThread, bg_check_data->archive_pkg_data);
 			RemoveArchivePkgInstallData(bg_check_data->hash);
-			free(bg_check_data);
+			delete bg_check_data;
 		}
 		else if (bg_check_data->split_pkg_data != nullptr)
 		{
 			ret = pthread_create(&bk_clean_thid, NULL, CleanSplitPkgDataThread, bg_check_data->split_pkg_data);
 			RemoveSplitPkgInstallData(bg_check_data->hash);
-			free(bg_check_data);
+			delete bg_check_data;
 		}
 		activity_inprogess = false;
 		file_transfering = false;
@@ -727,8 +727,7 @@ namespace INSTALLER
 		}
 		else
 		{
-			BgProgressCheck *bg_check_data = (BgProgressCheck *)malloc(sizeof(BgProgressCheck));
-			memset(bg_check_data, 0, sizeof(BgProgressCheck));
+			BgProgressCheck *bg_check_data = new BgProgressCheck{};
 			bg_check_data->archive_pkg_data = pkg_data;
 			bg_check_data->split_pkg_data = nullptr;
 			bg_check_data->url = full_url;
@@ -826,8 +825,7 @@ namespace INSTALLER
 		}
 		else
 		{
-			BgProgressCheck *bg_check_data = (BgProgressCheck *)malloc(sizeof(BgProgressCheck));
-			memset(bg_check_data, 0, sizeof(BgProgressCheck));
+			BgProgressCheck *bg_check_data = new BgProgressCheck{};
 			bg_check_data->split_pkg_data = pkg_data;
 			bg_check_data->archive_pkg_data = nullptr;
 			bg_check_data->url = full_url;

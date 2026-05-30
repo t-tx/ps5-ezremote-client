@@ -64,7 +64,7 @@ add_executable(ezremote_client.elf
   source/split_file.cpp
 )
 
-target_compile_definitions(ezremote_client.elf PRIVATE CPPHTTPLIB_THREAD_POOL_COUNT=64)
+target_compile_definitions(ezremote_client.elf PRIVATE CPPHTTPLIB_THREAD_POOL_COUNT=64 CPPHTTPLIB_RECV_BUFSIZ=12582912)
 
 target_link_libraries(ezremote_client.elf
   webp
