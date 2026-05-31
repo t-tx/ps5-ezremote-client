@@ -54,6 +54,7 @@ uint64_t bytes_transfered;
 uint64_t bytes_to_download;
 uint64_t prev_tick;
 
+std::recursive_mutex files_mutex;
 std::vector<DirEntry> local_files;
 std::vector<DirEntry> remote_files;
 std::set<DirEntry> multi_selected_local_files;
@@ -119,6 +120,14 @@ bool prev_down[21] = {false, false, false, false, false, false, false, false, fa
                       false, false, false, false, false, false, false, false, false, false, false};
 bool cur_down[21] = {false, false, false, false, false, false, false, false, false, false,
                      false, false, false, false, false, false, false, false, false, false, false};
+
+bool filter_pkg_local = false;
+int filter_pkg_local_level = 0; // 0 for 2 levels, 1 for 3 levels
+int local_sort_option = 0; // 0: Name, 1: Size
+
+bool filter_pkg_remote = false;
+int filter_pkg_remote_level = 0;
+int remote_sort_option = 0;
 namespace Windows
 {
 
@@ -303,7 +312,7 @@ namespace Windows
         ImGuiStyle *style = &ImGui::GetStyle();
         ImVec4 *colors = style->Colors;
         static char title[256];
-        sprintf(title, "ezRemote %s (v1.1.9)", lang_strings[STR_CONNECTION_SETTINGS]);
+		sprintf(title, "ezRemote %s (v1.2.22)", lang_strings[STR_CONNECTION_SETTINGS]);
         BeginGroupPanel(title, ImVec2(1905, 100));
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
         char id[256];
@@ -566,66 +575,73 @@ namespace Windows
 
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 1.0f));
         ImGui::TextColored(colors[ImGuiCol_ButtonHovered], "%s:", lang_strings[STR_FILTER]);
+        ImGui::PopStyleVar();
         ImGui::SameLine();
         ImGui::SetCursorPosX(posX + 180);
-        ImGui::PushID("local_filter##local");
-        if (ImGui::Button(local_filter, ImVec2(439, 0)))
+
+        ImGui::PushID("find_pkgs##local");
+        if (ImGui::Checkbox("filter .pkg", &filter_pkg_local))
+        {
+            selected_action = ACTION_REFRESH_LOCAL_FILES;
+        }
+        ImGui::SameLine();
+        char local_filter_id[64];
+        if (strlen(local_filter) == 0)
+            sprintf(local_filter_id, "text...##local_filter");
+        else
+            sprintf(local_filter_id, "%s##local_filter", local_filter);
+
+        if (ImGui::Button(local_filter_id, ImVec2(120, 0)))
         {
             ime_single_field = local_filter;
             ResetImeCallbacks();
             ime_field_size = 31;
             ime_callback = SingleValueImeCallback;
-            Dialog::initImeDialog(lang_strings[STR_FILTER], local_filter, 31, SCE_IME_TYPE_DEFAULT, pos.x, pos.y);
+            ime_after_update = AfterLocalFilterCallback;
+            Dialog::initImeDialog(lang_strings[STR_FILTER], local_filter, 31, SCE_IME_TYPE_DEFAULT, ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y);
             gui_mode = GUI_MODE_IME;
         }
+        if (filter_pkg_local || strlen(local_filter) > 0)
+        {
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(100);
+            const char* local_level_items[] = { "2 Levels", "3 Levels" };
+            if (ImGui::Combo("##local_pkg_levels", &filter_pkg_local_level, local_level_items, 2))
+            {
+                selected_action = ACTION_REFRESH_LOCAL_FILES;
+            }
+        }
         ImGui::PopID();
-        ImGui::PopStyleVar();
-        ImGui::SameLine();
 
-        ImGui::PushID("search##local");
-        if (ImGui::Button(lang_strings[STR_SEARCH], ImVec2(155, 0)))
-        {
-            selected_action = ACTION_APPLY_LOCAL_FILTER;
-        }
-        ImGui::PopID();
-        if (ImGui::IsItemHovered())
-        {
-            ImGui::BeginTooltip();
-            ImGui::Text("%s", lang_strings[STR_SEARCH]);
-            ImGui::EndTooltip();
-        }
         ImGui::SameLine();
-
-        ImGui::PushID("find_pkgs##local");
-        if (ImGui::Button("Find PKGs", ImVec2(120, 0)))
+        ImGui::PushID("sort##local");
+        ImGui::SetNextItemWidth(80);
+        const char* local_sort_items[] = { "Name", "Size" };
+        if (ImGui::Combo("##local_sort", &local_sort_option, local_sort_items, 2))
         {
-            sprintf(local_filter, ".*\\.pkg");
-            selected_action = ACTION_APPLY_LOCAL_FILTER;
+            selected_action = ACTION_REFRESH_LOCAL_FILES;
         }
         ImGui::PopID();
-        if (ImGui::IsItemHovered())
-        {
-            ImGui::BeginTooltip();
-            ImGui::Text("Find all .pkg files recursively");
-            ImGui::EndTooltip();
-        }
 
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
 
         ImGui::BeginChild("Local##ChildWindow", ImVec2(919, 720));
         ImGui::Separator();
         ImGui::Columns(2, "Local##Columns", true);
-        int i = 0;
         if (set_focus_to_local)
         {
             set_focus_to_local = false;
             ImGui::SetWindowFocus();
         }
-        for (int j = 0; j < local_files.size(); j++)
+        ImGuiListClipper clipper;
+        clipper.Begin(local_files.size());
+        while (clipper.Step())
         {
-            DirEntry item = local_files[j];
-            ImGui::SetColumnWidth(-1, 740);
-            ImGui::PushID(i);
+            for (int j = clipper.DisplayStart; j < clipper.DisplayEnd; j++)
+            {
+                DirEntry item = local_files[j];
+                ImGui::SetColumnWidth(-1, 740);
+                ImGui::PushID(j);
             auto search_item = multi_selected_local_files.find(item);
             if (search_item != multi_selected_local_files.end())
             {
@@ -716,7 +732,7 @@ namespace Windows
             }
             ImGui::NextColumn();
             ImGui::Separator();
-            i++;
+        }
         }
         ImGui::Columns(1);
         ImGui::EndChild();
@@ -772,35 +788,53 @@ namespace Windows
 
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 1.0f));
         ImGui::TextColored(colors[ImGuiCol_ButtonHovered], "%s:", lang_strings[STR_FILTER]);
+        ImGui::PopStyleVar();
         ImGui::SameLine();
         ImGui::SetCursorPosX(posX + 180);
-        ImGui::PushID("remote_filter##remote");
-        pos = ImGui::GetCursorPos();
-        if (ImGui::Button(remote_filter, ImVec2(569, 0)))
+
+        ImGui::PushID("find_pkgs##remote");
+        if (ImGui::Checkbox("filter .pkg", &filter_pkg_remote))
+        {
+            selected_action = ACTION_REFRESH_REMOTE_FILES;
+        }
+        ImGui::SameLine();
+        char remote_filter_id[64];
+        if (strlen(remote_filter) == 0)
+            sprintf(remote_filter_id, "text...##remote_filter");
+        else
+            sprintf(remote_filter_id, "%s##remote_filter", remote_filter);
+
+        if (ImGui::Button(remote_filter_id, ImVec2(120, 0)))
         {
             ime_single_field = remote_filter;
             ResetImeCallbacks();
             ime_field_size = 31;
             ime_callback = SingleValueImeCallback;
-            Dialog::initImeDialog(lang_strings[STR_FILTER], remote_filter, 31, SCE_IME_TYPE_DEFAULT, pos.x, pos.y);
+            ime_after_update = AfterRemoteFilterCallback;
+            Dialog::initImeDialog(lang_strings[STR_FILTER], remote_filter, 31, SCE_IME_TYPE_DEFAULT, ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y);
             gui_mode = GUI_MODE_IME;
-        };
+        }
+        if (filter_pkg_remote || strlen(remote_filter) > 0)
+        {
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(100);
+            const char* remote_level_items[] = { "2 Levels", "3 Levels" };
+            if (ImGui::Combo("##remote_pkg_levels", &filter_pkg_remote_level, remote_level_items, 2))
+            {
+                selected_action = ACTION_REFRESH_REMOTE_FILES;
+            }
+        }
         ImGui::PopID();
-        ImGui::PopStyleVar();
-        ImGui::SameLine();
 
-        ImGui::PushID("search##remote");
-        if (ImGui::Button(lang_strings[STR_SEARCH], ImVec2(155, 0)))
+        ImGui::SameLine();
+        ImGui::PushID("sort##remote");
+        ImGui::SetNextItemWidth(80);
+        const char* remote_sort_items[] = { "Name", "Size" };
+        if (ImGui::Combo("##remote_sort", &remote_sort_option, remote_sort_items, 2))
         {
-            selected_action = ACTION_APPLY_REMOTE_FILTER;
+            selected_action = ACTION_REFRESH_REMOTE_FILES;
         }
         ImGui::PopID();
-        if (ImGui::IsItemHovered())
-        {
-            ImGui::BeginTooltip();
-            ImGui::Text("%s", lang_strings[STR_SEARCH]);
-            ImGui::EndTooltip();
-        }
 
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
         ImGui::BeginChild(ImGui::GetID("Remote##ChildWindow"), ImVec2(919, 720));
@@ -811,18 +845,21 @@ namespace Windows
         }
         ImGui::Separator();
         ImGui::Columns(2, "Remote##Columns", true);
-        i = 99999;
-        for (int j = 0; j < remote_files.size(); j++)
+        ImGuiListClipper clipper_remote;
+        clipper_remote.Begin(remote_files.size());
+        while (clipper_remote.Step())
         {
-            DirEntry item = remote_files[j];
-
-            ImGui::SetColumnWidth(-1, 740);
-            auto search_item = multi_selected_remote_files.find(item);
-            if (search_item != multi_selected_remote_files.end())
+            for (int j = clipper_remote.DisplayStart; j < clipper_remote.DisplayEnd; j++)
             {
-                ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
-            }
-            ImGui::PushID(i);
+                DirEntry item = remote_files[j];
+
+                ImGui::SetColumnWidth(-1, 740);
+                auto search_item = multi_selected_remote_files.find(item);
+                if (search_item != multi_selected_remote_files.end())
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
+                }
+                ImGui::PushID(j + 99999);
             if (ImGui::Selectable(item.name, false, ImGuiSelectableFlags_SpanAllColumns, ImVec2(919, 0)))
             {
                 selected_remote_file = item;
@@ -908,7 +945,7 @@ namespace Windows
             }
             ImGui::NextColumn();
             ImGui::Separator();
-            i++;
+        }
         }
         ImGui::Columns(1);
         ImGui::EndChild();
@@ -951,6 +988,14 @@ namespace Windows
         }
         ImGui::PopTextWrapPos();
         ImGui::SameLine();
+
+        ImGui::SetCursorPosX(1600);
+        if (ImGui::Button(lang_strings[STR_RESTART_SERVER], ImVec2(130, 0)))
+        {
+            Actions::RestartServer();
+            is_server_started = !INSTALLER::EzRemoteServerVersion().empty();
+        }
+
         EndGroupPanel();
     }
 
@@ -1832,8 +1877,15 @@ namespace Windows
                     ImGui::Text("%s", item.path.c_str());
 
                     ImGui::NextColumn();
-                    ImGui::SetColumnWidth(-1, 150);
-                    ImGui::Text("%s", item.state.c_str());
+                    ImGui::SetColumnWidth(-1, 200);
+                    if (item.state == "Failed" && !item.fail_reason.empty())
+                    {
+                        ImGui::Text("Failed: %s", item.fail_reason.c_str());
+                    }
+                    else
+                    {
+                        ImGui::Text("%s", item.state.c_str());
+                    }
 
                     ImGui::NextColumn();
                     ImGui::SetColumnWidth(-1, 100);
@@ -1962,6 +2014,13 @@ namespace Windows
                 ImGui::SameLine();
                 ImGui::SetCursorPosX(805);
                 ImGui::Checkbox("##enable_bg_download", &enable_background_download);
+                ImGui::Separator();
+
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 15);
+                ImGui::Text("Enable direct download redirect (302)");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(805);
+                ImGui::Checkbox("##enable_direct_download_redirect", &enable_direct_download_redirect);
                 ImGui::Separator();
 
                 field_size = ImGui::CalcTextSize(lang_strings[STR_BG_DOWNLOAD_MIN_SIZE]);
@@ -2298,6 +2357,33 @@ namespace Windows
         ImGui::End();
     }
 
+    struct AsyncActionArgs {
+        int action;
+    };
+    static pthread_t async_action_thid;
+    static void* AsyncActionThread(void* arg) {
+        pthread_detach(pthread_self());
+        AsyncActionArgs* args = (AsyncActionArgs*)arg;
+        switch (args->action) {
+            case ACTION_REFRESH_LOCAL_FILES:
+                Actions::HandleRefreshLocalFiles();
+                break;
+            case ACTION_REFRESH_REMOTE_FILES:
+                Actions::HandleRefreshRemoteFiles();
+                break;
+            case ACTION_APPLY_LOCAL_FILTER:
+                Actions::RefreshLocalFiles(true);
+                break;
+            case ACTION_APPLY_REMOTE_FILTER:
+                if (remoteclient != nullptr)
+                    Actions::RefreshRemoteFiles(true);
+                break;
+        }
+        activity_inprogess = false;
+        delete args;
+        return NULL;
+    }
+
     void ExecuteActions()
     {
         std::vector<char> sfo;
@@ -2310,17 +2396,43 @@ namespace Windows
             Actions::HandleChangeRemoteDirectory(selected_remote_file);
             break;
         case ACTION_REFRESH_LOCAL_FILES:
-            Actions::HandleRefreshLocalFiles();
+            activity_inprogess = true;
+            sprintf(activity_message, "Loading...");
+            {
+                AsyncActionArgs* args = new AsyncActionArgs;
+                args->action = ACTION_REFRESH_LOCAL_FILES;
+                pthread_create(&async_action_thid, NULL, AsyncActionThread, args);
+            }
+            selected_action = ACTION_NONE;
             break;
         case ACTION_REFRESH_REMOTE_FILES:
-            Actions::HandleRefreshRemoteFiles();
+            activity_inprogess = true;
+            sprintf(activity_message, "Loading...");
+            {
+                AsyncActionArgs* args = new AsyncActionArgs;
+                args->action = ACTION_REFRESH_REMOTE_FILES;
+                pthread_create(&async_action_thid, NULL, AsyncActionThread, args);
+            }
+            selected_action = ACTION_NONE;
             break;
         case ACTION_APPLY_LOCAL_FILTER:
-            Actions::RefreshLocalFiles(true);
+            activity_inprogess = true;
+            sprintf(activity_message, "Loading...");
+            {
+                AsyncActionArgs* args = new AsyncActionArgs;
+                args->action = ACTION_APPLY_LOCAL_FILTER;
+                pthread_create(&async_action_thid, NULL, AsyncActionThread, args);
+            }
             selected_action = ACTION_NONE;
             break;
         case ACTION_APPLY_REMOTE_FILTER:
-            Actions::RefreshRemoteFiles(true);
+            activity_inprogess = true;
+            sprintf(activity_message, "Loading...");
+            {
+                AsyncActionArgs* args = new AsyncActionArgs;
+                args->action = ACTION_APPLY_REMOTE_FILTER;
+                pthread_create(&async_action_thid, NULL, AsyncActionThread, args);
+            }
             selected_action = ACTION_NONE;
             break;
         case ACTION_NEW_LOCAL_FOLDER:
@@ -2853,6 +2965,21 @@ namespace Windows
             std::string str = std::string(edit_line);
             edit_buffer[edit_line_num] = str;
             editor_modified = true;
+        }
+    }
+    void AfterLocalFilterCallback(int ime_result)
+    {
+        if (ime_result == IME_DIALOG_RESULT_FINISHED)
+        {
+            selected_action = ACTION_REFRESH_LOCAL_FILES;
+        }
+    }
+
+    void AfterRemoteFilterCallback(int ime_result)
+    {
+        if (ime_result == IME_DIALOG_RESULT_FINISHED)
+        {
+            selected_action = ACTION_REFRESH_REMOTE_FILES;
         }
     }
 }

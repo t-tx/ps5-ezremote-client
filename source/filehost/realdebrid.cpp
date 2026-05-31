@@ -27,9 +27,14 @@ bool RealDebridHost::IsValidUrl()
         if (HTTP_SUCCESS(res.iCode))
         {
             json_object *jobj = json_tokener_parse(res.strBody.data());
+            if (jobj == nullptr)
+                return false;
+
             uint64_t supported = json_object_get_uint64(json_object_object_get(jobj, "supported"));
 
-            if (supported == 1)
+            bool valid = supported == 1;
+            json_object_put(jobj);
+            if (valid)
                 return true;
         }
     }
@@ -55,16 +60,14 @@ std::string RealDebridHost::GetDownloadUrl()
         if (HTTP_SUCCESS(res.iCode))
         {
             json_object *jobj = json_tokener_parse(res.strBody.data());
-            const char *download = json_object_get_string(json_object_object_get(jobj, "download"));
-
-            if (download != nullptr)
-            {
-                return std::string(download);
-            }
-            else
-            {
+            if (jobj == nullptr)
                 return "";
-            }
+
+            const char *download = json_object_get_string(json_object_object_get(jobj, "download"));
+            std::string out = download != nullptr ? std::string(download) : "";
+            json_object_put(jobj);
+
+            return out;
         }
     }
     

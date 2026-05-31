@@ -7,6 +7,7 @@
 #include <semaphore.h>
 #include <pthread.h>
 #include <shared_mutex>
+#include <sys/types.h>
 
 enum FileBlockStatus
 {
@@ -29,7 +30,7 @@ class SplitFile
 public:
     SplitFile(const std::string& path, size_t block_size);
     ~SplitFile();
-    size_t Read(char* buf, size_t buf_size, size_t offset);
+    ssize_t Read(char* buf, size_t buf_size, size_t offset);
     ssize_t Write(char* buf, size_t buf_size);
     int Open();
     int Close();

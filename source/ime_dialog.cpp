@@ -151,37 +151,36 @@ namespace Dialog
     if (!ime_dialog_running)
       return IME_DIALOG_RESULT_NONE;
 
-    int status;
-    while (1)
+    int status = sceImeDialogGetStatus();
+
+    if (status == SCE_IME_DIALOG_STATUS_FINISHED)
     {
-      status = sceImeDialogGetStatus();
+      SceImeDialogResult result;
+      memset(&result, 0, sizeof(SceImeDialogResult));
+      sceImeDialogGetResult(&result);
 
-      if (status == SCE_IME_DIALOG_STATUS_FINISHED)
+      if (result.outcome == SCE_IME_DIALOG_END_STATUS_USER_CANCELED)
       {
-        SceImeDialogResult result;
-        memset(&result, 0, sizeof(SceImeDialogResult));
-        sceImeDialogGetResult(&result);
-
-        if (result.outcome == SCE_IME_DIALOG_END_STATUS_USER_CANCELED)
-        {
-          status = IME_DIALOG_RESULT_CANCELED;
-          goto Finished;
-        }
-
-        if (result.outcome == SCE_IME_DIALOG_END_STATUS_OK)
-        {
-          utf16_to_utf8(inputTextBuffer, storebuffer);
-          status = IME_DIALOG_RESULT_FINISHED;
-          goto Finished;
-        }
+        status = IME_DIALOG_RESULT_CANCELED;
+        goto Finished;
       }
 
-      if (status == SCE_IME_DIALOG_STATUS_NONE)
+      if (result.outcome == SCE_IME_DIALOG_END_STATUS_OK)
       {
-        status = IME_DIALOG_RESULT_NONE;
+        utf16_to_utf8(inputTextBuffer, storebuffer);
+        status = IME_DIALOG_RESULT_FINISHED;
         goto Finished;
       }
     }
+
+    if (status == SCE_IME_DIALOG_STATUS_NONE)
+    {
+      status = IME_DIALOG_RESULT_NONE;
+      goto Finished;
+    }
+    
+    return IME_DIALOG_RESULT_RUNNING;
+
   Finished:
     sceImeDialogTerm();
     ime_dialog_running = 0;

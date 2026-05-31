@@ -23,9 +23,14 @@ bool AllDebridHost::IsValidUrl()
         if (HTTP_SUCCESS(res.iCode))
         {
             json_object *jobj = json_tokener_parse(res.strBody.data());
+            if (jobj == nullptr)
+                return false;
+
             const char *status = json_object_get_string(json_object_object_get(jobj, "status"));
 
-            if (strcmp(status, "success") == 0)
+            bool valid = status != nullptr && strcmp(status, "success") == 0;
+            json_object_put(jobj);
+            if (valid)
                 return true;
         }
     }
@@ -47,18 +52,21 @@ std::string AllDebridHost::GetDownloadUrl()
         if (HTTP_SUCCESS(res.iCode))
         {
             json_object *jobj = json_tokener_parse(res.strBody.data());
+            if (jobj == nullptr)
+                return "";
+
             const char *status = json_object_get_string(json_object_object_get(jobj, "status"));
+            std::string out;
 
             if (status != nullptr && strcmp(status, "success") == 0)
             {
                 json_object *data = json_object_object_get(jobj, "data");
-                const char *link = json_object_get_string(json_object_object_get(data, "link"));
-                return std::string(link);
+                const char *link = data != nullptr ? json_object_get_string(json_object_object_get(data, "link")) : nullptr;
+                if (link != nullptr)
+                    out = link;
             }
-            else
-            {
-                return "";
-            }
+            json_object_put(jobj);
+            return out;
         }
     }
 

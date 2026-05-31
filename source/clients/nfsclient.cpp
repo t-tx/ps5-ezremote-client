@@ -21,10 +21,13 @@
 
 NfsClient::NfsClient()
 {
+	nfs = nullptr;
 }
 
 NfsClient::~NfsClient()
 {
+	if (nfs != nullptr)
+		Quit();
 }
 
 int NfsClient::Connect(const std::string &url, const std::string &user, const std::string &pass, bool send_ping)
@@ -40,6 +43,7 @@ int NfsClient::Connect(const std::string &url, const std::string &user, const st
 	if (nfsurl == nullptr) {
 		sprintf(response, "%s", nfs_get_error(nfs));
 		nfs_destroy_context(nfs);
+		nfs = nullptr;
 		return 0;
 	}
 
@@ -207,14 +211,21 @@ int NfsClient::Get(const std::string &outputfile, const std::string &ppath, uint
 	if (out == NULL)
 	{
 		sprintf(response, "%s", lang_strings[STR_FAILED]);
+		nfs_close(nfs, nfsfh);
 		return 0;
 	}
 
 	void *buff = malloc(BUF_SIZE);
+	if (buff == nullptr)
+	{
+		FS::Close(out);
+		nfs_close(nfs, nfsfh);
+		return 0;
+	}
 	int count = 0;
 	bytes_transfered = 0;
 	prev_tick = Util::GetTick();
-	while ((count = nfs_read(nfs, nfsfh, BUF_SIZE, buff)) > 0)
+	while ((count = nfs_read(nfs, nfsfh, BUF_SIZE, buff)) != 0)
 	{
 		if (count < 0)
 		{
@@ -245,6 +256,11 @@ int NfsClient::Get(SplitFile *split_file, const std::string &ppath, uint64_t off
 	}
 
 	void *buff = malloc(BUF_SIZE);
+	if (buff == nullptr)
+	{
+		nfs_close(nfs, nfsfh);
+		return 0;
+	}
 	int count = 0;
 	while ((count = nfs_read(nfs, nfsfh, BUF_SIZE, buff)) != 0)
 	{
@@ -295,6 +311,8 @@ int NfsClient::GetRange(void *fp, DataSink &sink, uint64_t size, uint64_t offset
 	}
 
 	void *buff = malloc(BUF_SIZE);
+	if (buff == nullptr)
+		return 0;
 	int count = 0;
 	size_t bytes_remaining = size;
 	do
@@ -318,7 +336,7 @@ int NfsClient::GetRange(void *fp, DataSink &sink, uint64_t size, uint64_t offset
 	} while (1);
 
 	free((void *)buff);
-	return 1;
+	return bytes_remaining == 0;
 }
 
 int NfsClient::GetRange(const std::string &ppath, void *buffer, uint64_t size, uint64_t offset)
@@ -430,10 +448,17 @@ int NfsClient::Put(const std::string &inputfile, const std::string &ppath, uint6
 	if (ret != 0)
 	{
 		sprintf(response, "%s", nfs_get_error(nfs));
+		FS::Close(in);
 		return 0;
 	}
 
 	void* buff = malloc(BUF_SIZE);
+	if (buff == nullptr)
+	{
+		FS::Close(in);
+		nfs_close(nfs, nfsfh);
+		return 0;
+	}
 	int count = 0;
 	bytes_transfered = 0;
 	prev_tick = Util::GetTick();

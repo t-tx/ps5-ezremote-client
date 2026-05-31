@@ -205,6 +205,26 @@ namespace Util
         return out;
     }
 
+    static std::string StatelessEncodeUrl(const std::string &url)
+    {
+        std::string out;
+        Base64::Encode(url, out);
+        Util::ReplaceAll(out, "=", "-");
+        Util::ReplaceAll(out, "+", ".");
+        Util::ReplaceAll(out, "/", "_");
+        return out;
+    }
+
+    static std::string StatelessDecodeUrl(std::string encoded)
+    {
+        Util::ReplaceAll(encoded, "_", "/");
+        Util::ReplaceAll(encoded, ".", "+");
+        Util::ReplaceAll(encoded, "-", "=");
+        std::string decoded;
+        Base64::Decode(encoded, decoded);
+        return decoded;
+    }
+
     static uint64_t GetTick()
     {
         static struct timeval tick;

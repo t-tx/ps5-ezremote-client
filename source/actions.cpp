@@ -54,7 +54,13 @@ namespace Actions
 
         for (auto& entry : temp_files)
         {
-            if (strcmp(entry.name, "..") == 0)
+            std::string lower_name = Util::ToLower(entry.name);
+            if (lower_name == "eboot.bin") return;
+        }
+
+        for (auto& entry : temp_files)
+        {
+            if (strcmp(entry.name, "..") == 0 || strcmp(entry.name, ".") == 0)
                 continue;
 
             // Search by name
@@ -77,19 +83,12 @@ namespace Actions
 
     void RefreshLocalFiles(bool apply_filter)
     {
-        multi_selected_local_files.clear();
-        local_files.clear();
+        std::set<DirEntry> temp_multi_selected;
+        std::vector<DirEntry> temp_local_files;
         int err = 0;
-        if (strlen(local_filter) > 0 && apply_filter)
-        {
-            std::regex re;
-            bool valid_regex = true;
-            try {
-                re = std::regex(local_filter, std::regex_constants::icase);
-            } catch (const std::regex_error& e) {
-                valid_regex = false;
-            }
 
+        if (filter_pkg_local || (strlen(local_filter) > 0 && apply_filter))
+        {
             DirEntry up_entry;
             memset(&up_entry, 0, sizeof(DirEntry));
             sprintf(up_entry.directory, "%s", local_directory);
@@ -99,10 +98,30 @@ namespace Actions
             up_entry.file_size = 0;
             up_entry.isDir = true;
             up_entry.selectable = false;
-            local_files.push_back(up_entry);
+            temp_local_files.push_back(up_entry);
 
+            std::string regex_str = ".*";
+            if (strlen(local_filter) > 0 && apply_filter)
+            {
+                regex_str += local_filter;
+                regex_str += ".*";
+            }
+            if (filter_pkg_local)
+            {
+                regex_str += "\\.pkg";
+            }
+            
+            std::regex re;
+            bool valid_regex = true;
+            try {
+                re = std::regex(regex_str, std::regex_constants::icase);
+            } catch (const std::regex_error& e) {
+                valid_regex = false;
+            }
+
+            int max_layer = filter_pkg_local_level == 0 ? 2 : 3;
             if (valid_regex) {
-                RecursiveSearchLocal(local_directory, re, 0, 2, local_files, "");
+                RecursiveSearchLocal(local_directory, re, 0, max_layer, temp_local_files, "");
             } else {
                 std::vector<DirEntry> temp_files = FS::ListDir(local_directory, &err);
                 std::string lower_filter = Util::ToLower(local_filter);
@@ -111,23 +130,72 @@ namespace Actions
                     std::string lower_name = Util::ToLower(it->name);
                     if (lower_name.find(lower_filter) != std::string::npos)
                     {
+                        if (filter_pkg_local) {
+                            std::string filename = Util::ToLower(it->name);
+                            size_t dot_pos = filename.find_last_of(".");
+                            std::string ext = (dot_pos != std::string::npos) ? filename.substr(dot_pos) : "";
+                            if (ext != ".pkg") continue;
+                        }
                         if (strcmp(it->name, "..") != 0)
-                            local_files.push_back(*it);
+                            temp_local_files.push_back(*it);
                     }
                 }
             }
         }
         else
         {
-            local_files = FS::ListDir(local_directory, &err);
+            temp_local_files = FS::ListDir(local_directory, &err);
         }
-        DirEntry::Sort(local_files);
+        DirEntry::Sort(temp_local_files, local_sort_option);
         if (err != 0)
             sprintf(status_message, "%s", lang_strings[STR_FAIL_READ_LOCAL_DIR_MSG]);
+
+        {
+            std::lock_guard<std::recursive_mutex> lock(files_mutex);
+            multi_selected_local_files = temp_multi_selected;
+            local_files = temp_local_files;
+        }
+    }
+
+    static void RecursiveSearchRemote(const std::string& path, const std::regex& re, int current_layer, int max_layer, std::vector<DirEntry>& results, const std::string& relative_prefix)
+    {
+        if (current_layer > max_layer)
+            return;
+
+        std::vector<DirEntry> temp_files = remoteclient->ListDir(path.c_str());
+
+        for (auto& entry : temp_files)
+        {
+            std::string lower_name = Util::ToLower(entry.name);
+            if (lower_name == "eboot.bin") return;
+        }
+
+        for (auto& entry : temp_files)
+        {
+            if (strcmp(entry.name, "..") == 0 || strcmp(entry.name, ".") == 0)
+                continue;
+
+            // Search by name
+            if (std::regex_search(entry.name, re))
+            {
+                DirEntry matched_entry = entry;
+                std::string rel_name = relative_prefix + entry.name;
+                snprintf(matched_entry.name, sizeof(matched_entry.name), "%s", rel_name.c_str());
+                results.push_back(matched_entry);
+            }
+
+            // Recurse into directories
+            if (entry.isDir)
+            {
+                std::string next_prefix = relative_prefix + entry.name + "/";
+                RecursiveSearchRemote(entry.path, re, current_layer + 1, max_layer, results, next_prefix);
+            }
+        }
     }
 
     void RefreshRemoteFiles(bool apply_filter)
     {
+        std::lock_guard<std::recursive_mutex> remote_lock(files_mutex);
         if (!remoteclient->Ping())
         {
             remoteclient->Quit();
@@ -136,28 +204,79 @@ namespace Actions
         }
 
         std::string strList;
-        multi_selected_remote_files.clear();
-        remote_files.clear();
-        if (strlen(remote_filter) > 0 && apply_filter)
+        std::set<DirEntry> temp_multi_selected;
+        std::vector<DirEntry> temp_remote_files;
+
+        if (filter_pkg_remote || (strlen(remote_filter) > 0 && apply_filter))
         {
-            std::vector<DirEntry> temp_files = remoteclient->ListDir(remote_directory);
-            std::string lower_filter = Util::ToLower(remote_filter);
-            for (std::vector<DirEntry>::iterator it = temp_files.begin(); it != temp_files.end();)
+            DirEntry up_entry;
+            memset(&up_entry, 0, sizeof(DirEntry));
+            sprintf(up_entry.directory, "%s", remote_directory);
+            sprintf(up_entry.name, "..");
+            sprintf(up_entry.display_size, "%s", lang_strings[STR_FOLDER]);
+            sprintf(up_entry.path, "%s", remote_directory);
+            up_entry.file_size = 0;
+            up_entry.isDir = true;
+            up_entry.selectable = false;
+            temp_remote_files.push_back(up_entry);
+
+            std::string regex_str = ".*";
+            if (strlen(remote_filter) > 0 && apply_filter)
             {
-                std::string lower_name = Util::ToLower(it->name);
-                if (lower_name.find(lower_filter) != std::string::npos || strcmp(it->name, "..") == 0)
-                {
-                    remote_files.push_back(*it);
-                }
-                ++it;
+                regex_str += remote_filter;
+                regex_str += ".*";
             }
-            temp_files.clear();
+            if (filter_pkg_remote)
+            {
+                regex_str += "\\.pkg";
+            }
+            
+            std::regex re;
+            bool valid_regex = true;
+            try {
+                re = std::regex(regex_str, std::regex_constants::icase);
+            } catch (const std::regex_error& e) {
+                valid_regex = false;
+            }
+
+            int max_layer = filter_pkg_remote_level == 0 ? 2 : 3;
+            if (valid_regex) {
+                RecursiveSearchRemote(remote_directory, re, 0, max_layer, temp_remote_files, "");
+            } else {
+                std::vector<DirEntry> temp_files = remoteclient->ListDir(remote_directory);
+                std::string lower_filter = Util::ToLower(remote_filter);
+                for (std::vector<DirEntry>::iterator it = temp_files.begin(); it != temp_files.end();)
+                {
+                    std::string lower_name = Util::ToLower(it->name);
+                    if (lower_name.find(lower_filter) != std::string::npos || strcmp(it->name, "..") == 0)
+                    {
+                        if (filter_pkg_remote && strcmp(it->name, "..") != 0) {
+                            std::string filename = Util::ToLower(it->name);
+                            size_t dot_pos = filename.find_last_of(".");
+                            std::string ext = (dot_pos != std::string::npos) ? filename.substr(dot_pos) : "";
+                            if (ext != ".pkg") {
+                                ++it;
+                                continue;
+                            }
+                        }
+                        temp_remote_files.push_back(*it);
+                    }
+                    ++it;
+                }
+                temp_files.clear();
+            }
         }
         else
         {
-            remote_files = remoteclient->ListDir(remote_directory);
+            temp_remote_files = remoteclient->ListDir(remote_directory);
         }
-        DirEntry::Sort(remote_files);
+        DirEntry::Sort(temp_remote_files, remote_sort_option);
+
+        {
+            std::lock_guard<std::recursive_mutex> lock(files_mutex);
+            multi_selected_remote_files = temp_multi_selected;
+            remote_files = temp_remote_files;
+        }
     }
 
     void HandleChangeLocalDirectory(const DirEntry entry)
@@ -318,6 +437,8 @@ namespace Actions
 
     void *DeleteSelectedLocalFilesThread(void *argp)
     {
+    dbglogger_log("Thread DeleteSelectedLocalFilesThread started.");
+    pthread_detach(pthread_self());
         std::vector<DirEntry> files;
         if (multi_selected_local_files.size() > 0)
             std::copy(multi_selected_local_files.begin(), multi_selected_local_files.end(), std::back_inserter(files));
@@ -347,6 +468,8 @@ namespace Actions
 
     void *DeleteSelectedRemotesFilesThread(void *argp)
     {
+    dbglogger_log("Thread DeleteSelectedRemotesFilesThread started.");
+    pthread_detach(pthread_self());
         if (remoteclient->Ping())
         {
             std::vector<DirEntry> files;
@@ -448,15 +571,15 @@ namespace Actions
                 if (stop_activity)
                     return 1;
 
+                if (entries[i].isDir && strcmp(entries[i].name, "..") == 0)
+                    continue;
+
                 int path_length = strlen(dest) + strlen(entries[i].name) + 2;
                 char *new_path = (char *)malloc(path_length);
                 snprintf(new_path, path_length, "%s%s%s", dest, FS::hasEndSlash(dest) ? "" : "/", entries[i].name);
 
                 if (entries[i].isDir)
                 {
-                    if (strcmp(entries[i].name, "..") == 0)
-                        continue;
-
                     remoteclient->Mkdir(new_path);
                     ret = Upload(entries[i], new_path);
                     if (ret <= 0)
@@ -503,6 +626,8 @@ namespace Actions
 
     void *UploadFilesThread(void *argp)
     {
+    dbglogger_log("Thread UploadFilesThread started.");
+    pthread_detach(pthread_self());
         file_transfering = true;
         std::vector<DirEntry> files;
         if (multi_selected_local_files.size() > 0)
@@ -562,7 +687,7 @@ namespace Actions
 			json_object_object_add(params, "http_server_type", json_object_new_string(remote_settings->http_server_type));
 		}
 
-        const char *params_str = json_object_to_json_string(params);
+        std::string params_payload = json_object_to_json_string(params);
 
 		CHTTPClient::HttpResponse res;
 		CHTTPClient::HeadersMap headers;
@@ -572,31 +697,47 @@ namespace Actions
 		headers["Content-Type"] = "application/json";
 
 		std::string download_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/download_url";
-		if (tmp_client.Post(download_url, headers, params_str, res))
+		if (tmp_client.Post(download_url, headers, params_payload.c_str(), res))
 		{
 			if (HTTP_SUCCESS(res.iCode))
 			{
-                Util::RichNotify(id, "%s queued for download", src);
-                return 1;
+				bool queued = true;
+				if (!res.strBody.empty())
+				{
+					json_object *jobj = json_tokener_parse(res.strBody.data());
+					if (jobj != nullptr)
+					{
+						json_object *result = json_object_object_get(jobj, "result");
+						if (result != nullptr)
+							queued = json_object_get_boolean(json_object_object_get(result, "success"));
+						json_object_put(jobj);
+					}
+				}
+
+				if (queued)
+				{
+					Util::RichNotify(id, "%s queued for download", src);
+					json_object_put(params);
+					return 1;
+				}
 	  		}
-			else
-			{
-                Util::RichNotify(id, "Failed to queue %s for download in background", src);
-				return 0;
-			}
 		}
 
+        json_object_put(params);
+        Util::RichNotify(id, "Failed to queue %s for download in background", src);
         return 0;
     }
 
     int DownloadFile(const char *src, const char *dest)
     {
+        dbglogger_printf("[Download] Started downloading file %s to %s\n", src, dest);
         bytes_transfered = 0;
         prev_tick = Util::GetTick();
         if (!remoteclient->Size(src, &bytes_to_download))
         {
             remoteclient->Quit();
             sprintf(status_message, "%s", lang_strings[STR_CONNECTION_CLOSE_ERR_MSG]);
+            dbglogger_printf("[Download] Failed to get size for %s: %s\n", src, remoteclient->LastResponse());
             return 0;
         }
 
@@ -630,7 +771,11 @@ namespace Actions
             {
                 return BackgroundDownload(src, dest, bytes_to_download);
             }
-            return remoteclient->Get(dest, src);
+            int result = remoteclient->Get(dest, src);
+            if (result <= 0) {
+                dbglogger_printf("[Download] Failed to download %s: %s\n", src, remoteclient->LastResponse());
+            }
+            return result;
         }
 
         sceSystemServicePowerTick();
@@ -639,6 +784,7 @@ namespace Actions
 
     int Download(const DirEntry &src, const char *dest)
     {
+        dbglogger_printf("[Download] Started downloading item %s to %s\n", src.path, dest);
         if (stop_activity)
             return 1;
 
@@ -653,15 +799,15 @@ namespace Actions
                 if (stop_activity)
                     return 1;
 
+                if (entries[i].isDir && strcmp(entries[i].name, "..") == 0)
+                    continue;
+
                 int path_length = strlen(dest) + strlen(entries[i].name) + 2;
                 char *new_path = (char *)malloc(path_length);
                 snprintf(new_path, path_length, "%s%s%s", dest, FS::hasEndSlash(dest) ? "" : "/", entries[i].name);
 
                 if (entries[i].isDir)
                 {
-                    if (strcmp(entries[i].name, "..") == 0)
-                        continue;
-
                     FS::MkDirs(new_path);
                     ret = Download(entries[i], new_path);
                     if (ret <= 0)
@@ -704,6 +850,8 @@ namespace Actions
 
     void *DownloadFilesThread(void *argp)
     {
+    dbglogger_log("Thread DownloadFilesThread started.");
+    pthread_detach(pthread_self());
         file_transfering = true;
         std::vector<DirEntry> files;
         if (multi_selected_remote_files.size() > 0)
@@ -713,15 +861,19 @@ namespace Actions
 
         for (std::vector<DirEntry>::iterator it = files.begin(); it != files.end(); ++it)
         {
+            std::string download_dest = local_directory;
+            if (download_dest == "/")
+                download_dest = "/data";
+
             if (it->isDir)
             {
                 char new_dir[512];
-                sprintf(new_dir, "%s%s%s", local_directory, FS::hasEndSlash(local_directory) ? "" : "/", it->name);
+                sprintf(new_dir, "%s%s%s", download_dest.c_str(), FS::hasEndSlash(download_dest.c_str()) ? "" : "/", it->name);
                 Download(*it, new_dir);
             }
             else
             {
-                Download(*it, local_directory);
+                Download(*it, download_dest.c_str());
             }
         }
 
@@ -749,6 +901,8 @@ namespace Actions
 
     void *InstallRemotePkgsThread(void *argp)
     {
+    dbglogger_log("Thread InstallRemotePkgsThread started.");
+    pthread_detach(pthread_self());
         int failed = 0;
         int success = 0;
         int skipped = 0;
@@ -778,9 +932,10 @@ namespace Actions
                         failed++;
                     else
                     {
-                        if (BE32(header.pkg_magic) == PS4_PKG_MAGIC)
+                        if (BE32(header.pkg_magic) == PS4_PKG_MAGIC || BE32(header.pkg_magic) == PS5_PKG_MAGIC)
                         {
-                            if (!remote_settings->enable_rpi)
+                            // PS5 PKGs are not reliable through the RPI/DPI HTTP path; install after a local download.
+                            if (!remote_settings->enable_rpi || BE32(header.pkg_magic) == PS5_PKG_MAGIC)
                             {
                                 if (DownloadAndInstallPkg(it->path, &header) == 0)
                                     failed++;
@@ -816,7 +971,7 @@ namespace Actions
                                 {
                                     std::string url = INSTALLER::getRemoteUrl(it->path, true);
                                     std::string title = INSTALLER::GetRemotePkgTitle(remoteclient, it->path, &header);
-                                    if (INSTALLER::InstallRemotePkg(url, &header, title) == 0)
+                                    if (INSTALLER::InstallRemotePkg(url, &header, title, it->path) == 0)
                                         failed++;
                                     else
                                         success++;
@@ -870,9 +1025,28 @@ namespace Actions
             else
                 skipped++;
 
-            sprintf(status_message, "%s %s = %d, %s = %d, %s = %d", lang_strings[STR_INSTALL],
-                    lang_strings[STR_INSTALL_SUCCESS], success, lang_strings[STR_INSTALL_FAILED], failed,
-                    lang_strings[STR_INSTALL_SKIPPED], skipped);
+            if (failed == 1 && success == 0)
+            {
+                std::string error = INSTALLER::GetLastInstallError();
+                if (!error.empty())
+                {
+                    sprintf(status_message, "%s %s = %d, %s = %d (%s), %s = %d", lang_strings[STR_INSTALL],
+                        lang_strings[STR_INSTALL_SUCCESS], success, lang_strings[STR_INSTALL_FAILED], failed, error.c_str(),
+                        lang_strings[STR_INSTALL_SKIPPED], skipped);
+                }
+                else
+                {
+                    sprintf(status_message, "%s %s = %d, %s = %d, %s = %d", lang_strings[STR_INSTALL],
+                            lang_strings[STR_INSTALL_SUCCESS], success, lang_strings[STR_INSTALL_FAILED], failed,
+                            lang_strings[STR_INSTALL_SKIPPED], skipped);
+                }
+            }
+            else
+            {
+                sprintf(status_message, "%s %s = %d, %s = %d, %s = %d", lang_strings[STR_INSTALL],
+                        lang_strings[STR_INSTALL_SUCCESS], success, lang_strings[STR_INSTALL_FAILED], failed,
+                        lang_strings[STR_INSTALL_SKIPPED], skipped);
+            }
         }
     finish:
         activity_inprogess = false;
@@ -896,6 +1070,7 @@ namespace Actions
 
     void *ExtractArchivePkg(void *argp)
     {
+    dbglogger_log("Thread ExtractArchivePkg started.");
         ssize_t len;
         char *buffer = (char*) malloc(ARCHIVE_TRANSFER_SIZE);
 
@@ -931,6 +1106,7 @@ namespace Actions
 
     void *DownloadSplitPkg(void *argp)
     {
+    dbglogger_log("Thread DownloadSplitPkg started.");
         SplitPkgInstallData *install_data = (SplitPkgInstallData*) argp;
         SplitFile *sp = install_data->split_file;
 
@@ -943,6 +1119,8 @@ namespace Actions
 
     void *InstallLocalPkgsThread(void *argp)
     {
+    dbglogger_log("Thread InstallLocalPkgsThread started.");
+    pthread_detach(pthread_self());
         int failed = 0;
         int success = 0;
         int skipped = 0;
@@ -972,7 +1150,7 @@ namespace Actions
                         failed++;
                     else
                     {
-                        if (BE32(header.pkg_magic) == PS4_PKG_MAGIC)
+                        if (BE32(header.pkg_magic) == PS4_PKG_MAGIC || BE32(header.pkg_magic) == PS5_PKG_MAGIC)
                         {
                             if ((ret = INSTALLER::InstallLocalPkg(it->path, &header)) <= 0)
                             {
@@ -1055,6 +1233,8 @@ namespace Actions
 
     void *ExtractZipThread(void *argp)
     {
+    dbglogger_log("Thread ExtractZipThread started.");
+    pthread_detach(pthread_self());
         FS::MkDirs(extract_zip_folder);
         std::vector<DirEntry> files;
         if (multi_selected_local_files.size() > 0)
@@ -1098,6 +1278,8 @@ namespace Actions
 
     void *ExtractRemoteZipThread(void *argp)
     {
+    dbglogger_log("Thread ExtractRemoteZipThread started.");
+    pthread_detach(pthread_self());
         FS::MkDirs(extract_zip_folder);
         std::vector<DirEntry> files;
         if (multi_selected_remote_files.size() > 0)
@@ -1141,6 +1323,8 @@ namespace Actions
 
     void *MakeZipThread(void *argp)
     {
+    dbglogger_log("Thread MakeZipThread started.");
+    pthread_detach(pthread_self());
         zipFile zf = zipOpen64(zip_file_path, APPEND_STATUS_CREATE);
         if (zf != NULL)
         {
@@ -1189,6 +1373,8 @@ namespace Actions
 
     void *InstallLocalUrlPkgThread(void *argp)
     {
+    dbglogger_log("Thread InstallLocalUrlPkgThread started.");
+    pthread_detach(pthread_self());
         bytes_transfered = 0;
         prev_tick = Util::GetTick();
         sprintf(status_message, "%s", "");
@@ -1261,7 +1447,7 @@ namespace Actions
 
         FS::Read(in, (void *)&header, s);
         FS::Close(in);
-        if (BE32(header.pkg_magic) == PS4_PKG_MAGIC)
+        if (BE32(header.pkg_magic) == PS4_PKG_MAGIC || BE32(header.pkg_magic) == PS5_PKG_MAGIC)
         {
             int ret;
             if ((ret = INSTALLER::InstallLocalPkg(filename, &header, true)) != 1)
@@ -1293,6 +1479,8 @@ namespace Actions
 
     void *InstallRpiUrlPkgThread(void *argp)
     {
+    dbglogger_log("Thread InstallRpiUrlPkgThread started.");
+    pthread_detach(pthread_self());
         json_object *params = json_object_new_object();
         json_object_object_add(params, "url", json_object_new_string(install_pkg_url.url));
         json_object_object_add(params, "use_alldebrid", json_object_new_boolean(install_pkg_url.enable_alldebrid));
@@ -1302,7 +1490,7 @@ namespace Actions
         json_object_object_add(params, "username", json_object_new_string(install_pkg_url.username));
         json_object_object_add(params, "password", json_object_new_string(install_pkg_url.password));
 
-        const char *params_str = json_object_to_json_string(params);
+        std::string params_payload = json_object_to_json_string(params);
 
         char host[128];
         sprintf(host, "http://127.0.0.1:%d", http_server_port);
@@ -1314,7 +1502,7 @@ namespace Actions
         tmp_client.SetCertificateFile(CACERT_FILE);
         headers["Content-Type"] = "application/json";
 
-        if (tmp_client.Post("/__local__/install_url", headers, params_str, res))
+        if (tmp_client.Post("/__local__/install_url", headers, params_payload.c_str(), res))
         {
             if (HTTP_SUCCESS(res.iCode))
             {
@@ -1333,6 +1521,7 @@ namespace Actions
                             Windows::SetModalMode(false);
                         }
                     }
+                    json_object_put(jobj);
                 }
                 else
                 {
@@ -1347,6 +1536,7 @@ namespace Actions
             }
         }
 
+        json_object_put(params);
         return NULL;
     }
 
@@ -1445,10 +1635,17 @@ namespace Actions
 
     void Disconnect()
     {
+        std::lock_guard<std::recursive_mutex> remote_lock(files_mutex);
         if (remoteclient != nullptr)
         {
             if (remoteclient->IsConnected())
                 remoteclient->Quit();
+            
+            if (remoteclient->clientType() == CLIENT_TYPE_FTP)
+            {
+                pthread_join(ftp_keep_alive_thid, NULL);
+            }
+
             multi_selected_remote_files.clear();
             remote_files.clear();
             sprintf(status_message, "%s", "");
@@ -1477,6 +1674,7 @@ namespace Actions
 
     void *KeepAliveThread(void *argp)
     {
+    dbglogger_log("Thread KeepAliveThread started.");
         long idle;
         while (remoteclient != nullptr && remoteclient->clientType() == CLIENT_TYPE_FTP && remoteclient->IsConnected())
         {
@@ -1621,6 +1819,8 @@ namespace Actions
 
     void *MoveLocalFilesThread(void *argp)
     {
+    dbglogger_log("Thread MoveLocalFilesThread started.");
+    pthread_detach(pthread_self());
         file_transfering = true;
         for (std::vector<DirEntry>::iterator it = local_paste_files.begin(); it != local_paste_files.end(); ++it)
         {
@@ -1669,6 +1869,8 @@ namespace Actions
 
     void *CopyLocalFilesThread(void *argp)
     {
+    dbglogger_log("Thread CopyLocalFilesThread started.");
+    pthread_detach(pthread_self());
         file_transfering = true;
         for (std::vector<DirEntry>::iterator it = local_paste_files.begin(); it != local_paste_files.end(); ++it)
         {
@@ -1754,6 +1956,8 @@ namespace Actions
 
     void *MoveRemoteFilesThread(void *argp)
     {
+    dbglogger_log("Thread MoveRemoteFilesThread started.");
+    pthread_detach(pthread_self());
         file_transfering = false;
         for (std::vector<DirEntry>::iterator it = remote_paste_files.begin(); it != remote_paste_files.end(); ++it)
         {
@@ -1816,15 +2020,15 @@ namespace Actions
                 if (stop_activity)
                     return 1;
 
+                if (entries[i].isDir && strcmp(entries[i].name, "..") == 0)
+                    continue;
+
                 int path_length = strlen(dest) + strlen(entries[i].name) + 2;
                 char *new_path = (char *)malloc(path_length);
                 snprintf(new_path, path_length, "%s%s%s", dest, FS::hasEndSlash(dest) ? "" : "/", entries[i].name);
 
                 if (entries[i].isDir)
                 {
-                    if (strcmp(entries[i].name, "..") == 0)
-                        continue;
-
                     remoteclient->Mkdir(new_path);
                     ret = CopyRemotePath(entries[i], new_path);
                     if (ret <= 0)
@@ -1870,6 +2074,8 @@ namespace Actions
 
     void *CopyRemoteFilesThread(void *argp)
     {
+    dbglogger_log("Thread CopyRemoteFilesThread started.");
+    pthread_detach(pthread_self());
         file_transfering = false;
         for (std::vector<DirEntry>::iterator it = remote_paste_files.begin(); it != remote_paste_files.end(); ++it)
         {
@@ -2029,6 +2235,9 @@ namespace Actions
                         progress.bytes_transfered = json_object_get_uint64(json_object_object_get(progress_obj, "bytes_transfered"));
                         progress.file_size = json_object_get_uint64(json_object_object_get(progress_obj, "file_size"));
                         progress.state = state_strings[json_object_get_int(json_object_object_get(progress_obj, "state"))];
+                        json_object *fail_reason_obj = json_object_object_get(progress_obj, "fail_reason");
+                        if (fail_reason_obj != nullptr)
+                            progress.fail_reason = json_object_get_string(fail_reason_obj);
                         progress.timestamp = json_object_get_uint64(json_object_object_get(progress_obj, "timestamp"));
 
                         bg_download_progress.push_back(progress);

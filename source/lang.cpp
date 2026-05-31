@@ -189,6 +189,7 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Minimum background file size (bytes)",                                                           // STR_BG_DOWNLOAD_MIN_SIZE
 	"Background Download Progress",                                                                   // STR_BG_DOWNLOAD_PROGRESS
 	"Show Background Download Progress",                                                              // STR_SHOW_BG_DOWNLOAD_PROGRESS
+	"Restart DPI",                                                                                    // STR_RESTART_DPI
 };
 
 bool needs_extended_font = false;

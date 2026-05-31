@@ -129,6 +129,7 @@ struct ArchivePkgInstallData
     ArchiveEntry *archive_entry;
     pthread_t thread;
     bool stop_write_thread;
+    bool delete_client;
 };
 
 struct SplitPkgInstallData
@@ -151,8 +152,10 @@ namespace INSTALLER
     void Exit(void);
 
     bool canInstallRemotePkg(const std::string &url);
+    bool CanDirectDownloadUrl(const std::string &url);
+    bool IsSafeDirectInstallUrl(const std::string &url);
     std::string getRemoteUrl(const std::string path, bool encodeUrl = false);
-    int InstallRemotePkg(const std::string &path, pkg_header *header, std::string title);
+    int InstallRemotePkg(const std::string &url, pkg_header *header, std::string title, const std::string &path = "");
     int InstallLocalPkg(const std::string &path, pkg_header *header, bool remove_after_install = false);
     int InstallLocalPkg(const std::string &path);
     bool ExtractLocalPkg(const std::string &path, const std::string sfo_path, const std::string icon_path);
@@ -168,11 +171,13 @@ namespace INSTALLER
     void RemoveSplitPkgInstallData(const std::string &hash);
     bool InstallSplitPkg(const std::string &path, SplitPkgInstallData* pkg_data, bool bg = false);
     bool IsDirectPackageInstallerEnabled();
-    int StartDirectPackageInstaller();
-    int InstallWithDirectPackageInstaller(const std::string &url);
+    void StopDirectPackageInstaller();
+    int GetTotalDownloadRemainingTime(std::string &time_str);
+    int InstallWithDirectPackageInstaller(const std::string &url, const std::string &title = "", const std::string &icon = "", const std::string &content_id = "");
     std::string EzRemoteServerVersion();
     int StartEzRemoteServer();
     std::string StoreBgInstallHostData(RemoteSettings *remote_settings, const std::string &path);
+    std::string GetLastInstallError();
     RemoteClient *GetRemoteClient(int site_idx);
     RemoteClient *GetRemoteClient(RemoteSettings *settings);
 }

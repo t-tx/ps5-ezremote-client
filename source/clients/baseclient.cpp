@@ -1,6 +1,7 @@
 #include <fstream>
 #include <curl/curl.h>
 #include <sys/time.h>
+#include <stdint.h>
 #include "clients/remote_client.h"
 #include "clients/baseclient.h"
 #include "config.h"
@@ -12,9 +13,61 @@
 
 using httplib::DataSink;
 
-struct BufferPtr {
+struct RangeTransferContext {
+    CHTTPClient::HttpResponse *response;
+    DataSink *sink;
     char *buffer;
+    uint64_t offset;
+    uint64_t size;
+    uint64_t written;
+    bool checked;
+    bool valid;
 };
+
+static bool ExpectedContentRange(const CHTTPClient::HttpResponse &res, uint64_t offset, uint64_t size)
+{
+    if (size == 0 || UINT64_MAX - offset < size - 1)
+        return false;
+
+    auto it = res.mapHeadersLowercase.find("content-range");
+    if (it == res.mapHeadersLowercase.end())
+        return false;
+
+    std::string expected = "bytes " + std::to_string(offset) + "-" + std::to_string(offset + size - 1) + "/";
+    return it->second.compare(0, expected.length(), expected) == 0;
+}
+
+static bool ContentRangeTotal(const CHTTPClient::HttpResponse &res, uint64_t offset, uint64_t size, uint64_t *total)
+{
+    if (!ExpectedContentRange(res, offset, size))
+        return false;
+
+    const std::string &content_range = res.mapHeadersLowercase.at("content-range");
+    size_t slash_pos = content_range.find('/');
+    if (slash_pos == std::string::npos || slash_pos + 1 >= content_range.length())
+        return false;
+
+    std::string total_str = content_range.substr(slash_pos + 1);
+    if (total_str == "*")
+        return false;
+
+    *total = strtoull(total_str.c_str(), nullptr, 10);
+    return true;
+}
+
+static bool CheckRangeTransfer(RangeTransferContext *out, size_t bytes)
+{
+    if (!out->checked)
+    {
+        out->valid = ExpectedContentRange(*out->response, out->offset, out->size);
+        out->checked = true;
+    }
+
+    if (!out->valid || out->written + bytes > out->size)
+        return false;
+
+    return true;
+}
 
 BaseClient::BaseClient(){};
 
@@ -75,22 +128,33 @@ size_t BaseClient::WriteToSplitFileCallback(void *buff, size_t size, size_t nmem
 size_t BaseClient::WriteDataSinkCallback(void *pCurlData, size_t usBlockCount, size_t usBlockSize, void *pUserData)
 {
     const char* buff = reinterpret_cast<char *>(pCurlData);
-    DataSink *out = reinterpret_cast<DataSink*>(pUserData);
+    RangeTransferContext *out = reinterpret_cast<RangeTransferContext*>(pUserData);
+    size_t bytes = usBlockCount * usBlockSize;
 
-    if (out->write(buff, usBlockCount*usBlockSize))
-        return (usBlockCount * usBlockSize);
+    if (!CheckRangeTransfer(out, bytes))
+        return 0;
+
+    if (out->sink->write(buff, bytes))
+    {
+        out->written += bytes;
+        return bytes;
+    }
     return 0;
 }
 
 size_t BaseClient::WriteBufferCallback(void *pCurlData, size_t usBlockCount, size_t usBlockSize, void *pUserData)
 {
     const char* input = reinterpret_cast<char *>(pCurlData);
-    BufferPtr *out = reinterpret_cast<BufferPtr*>(pUserData);
+    RangeTransferContext *out = reinterpret_cast<RangeTransferContext*>(pUserData);
+    size_t bytes = usBlockCount * usBlockSize;
 
-    memcpy(out->buffer, input, usBlockCount*usBlockSize);
-    out->buffer += (usBlockCount*usBlockSize);
+    if (!CheckRangeTransfer(out, bytes))
+        return 0;
 
-    return usBlockCount*usBlockSize;
+    memcpy(out->buffer + out->written, input, bytes);
+    out->written += bytes;
+
+    return bytes;
 }
 
 int BaseClient::Connect(const std::string &url, const std::string &username, const std::string &password, bool send_ping)
@@ -161,11 +225,10 @@ int BaseClient::Size(const std::string &path, uint64_t *size)
             {
                 if (HTTP_SUCCESS(range_res.iCode))
                 {
-                    std::string content_range = range_res.mapHeaders["Content-Range"];
-                    std::vector<std::string> range_parts = Util::Split(content_range, "/");
-                    if (range_parts.size() == 2)
+                    uint64_t total_size = 0;
+                    if (range_res.iCode == 206 && ContentRangeTotal(range_res, 0, 2, &total_size))
                     {
-                        *size = atoll(range_parts[1].c_str());
+                        *size = total_size;
                         return 1;
                     }
                 }
@@ -181,7 +244,7 @@ int BaseClient::Size(const std::string &path, uint64_t *size)
 
 int BaseClient::Get(const std::string &outputfile, const std::string &path, uint64_t offset)
 {
-    long status;
+    long status = 0;
     bytes_transfered = 0;
     prev_tick = Util::GetTick();
     CHTTPClient::HeadersMap headers;
@@ -196,7 +259,11 @@ int BaseClient::Get(const std::string &outputfile, const std::string &path, uint
     std::string encoded_url = this->host_url + CHTTPClient::EncodeUrl(GetFullPath(path));
     if (client->DownloadFile(outputfile, encoded_url, status))
     {
-        return 1;
+        if (HTTP_SUCCESS(status))
+            return 1;
+
+        sprintf(this->response, "%ld - %s", status, lang_strings[STR_FAIL_DOWNLOAD_MSG]);
+        return 0;
     }
     else
     {
@@ -207,7 +274,7 @@ int BaseClient::Get(const std::string &outputfile, const std::string &path, uint
 
 int BaseClient::Get(SplitFile *split_file, const std::string &path, uint64_t offset)
 {
-    long status;
+    long status = 0;
     CHTTPClient::HeadersMap headers;
 
     prev_tick = Util::GetTick();
@@ -229,21 +296,26 @@ int BaseClient::GetRange(const std::string &path, DataSink &sink, uint64_t size,
     CHTTPClient::HttpResponse res;
     CHTTPClient::HeadersMap headers;
 
+    if (size == 0)
+        return 0;
+
     char range_header[128];
     sprintf(range_header, "bytes=%lu-%lu", offset, offset + size - 1);
     headers["Range"] = range_header;
 
     std::string encoded_url = this->host_url + CHTTPClient::EncodeUrl(GetFullPath(path));
-    if (client->Get(encoded_url, headers, res, (void*) &WriteDataSinkCallback, (void*)&sink))
+    RangeTransferContext out = {&res, &sink, nullptr, offset, size, 0, false, false};
+    if (client->Get(encoded_url, headers, res, (void*) &WriteDataSinkCallback, (void*)&out))
     {
-        if (HTTP_SUCCESS(res.iCode))
+        if (res.iCode == 206 && out.valid && out.written == size)
             return 1;
-        else
-            return 0;
     }
     else
     {
-        sprintf(this->response, "%s", res.errMessage.c_str());
+        if (out.checked && !out.valid)
+            sprintf(this->response, "%s", "Remote server did not honor the Range request");
+        else
+            sprintf(this->response, "%s", res.errMessage.c_str());
     }
     return 0;
 }
@@ -253,21 +325,27 @@ int BaseClient::GetRange(const std::string &path, void *buffer, uint64_t size, u
     CHTTPClient::HttpResponse res;
     CHTTPClient::HeadersMap headers;
 
+    if (size == 0)
+        return 0;
+
     char range_header[128];
     sprintf(range_header, "bytes=%lu-%lu", offset, offset + size - 1);
     headers["Range"] = range_header;
 
-    BufferPtr buff = {(char*)buffer};
-
     std::string encoded_url = this->host_url + CHTTPClient::EncodeUrl(GetFullPath(path));
     client->SetProgressFnCallback(nullptr, NothingCallback);
-    if (client->Get(encoded_url, headers, res, (void*) &WriteBufferCallback, (void*) &buff))
+    RangeTransferContext out = {&res, nullptr, (char*)buffer, offset, size, 0, false, false};
+    if (client->Get(encoded_url, headers, res, (void*) &WriteBufferCallback, (void*) &out))
     {
-        return 1;
+        if (res.iCode == 206 && out.valid && out.written == size)
+            return 1;
     }
     else
     {
-        sprintf(this->response, "%s", res.errMessage.c_str());
+        if (out.checked && !out.valid)
+            sprintf(this->response, "%s", "Remote server did not honor the Range request");
+        else
+            sprintf(this->response, "%s", res.errMessage.c_str());
     }
     return 0;
 }
@@ -307,21 +385,27 @@ int BaseClient::Head(const std::string &path, void *buffer, uint64_t size)
     CHTTPClient::HttpResponse res;
     CHTTPClient::HeadersMap headers;
 
+    if (size == 0)
+        return 0;
+
     char range_header[128];
     sprintf(range_header, "bytes=%lu-%lu", 0L, size - 1);
     headers["Range"] = range_header;
 
     std::string encoded_url = this->host_url + CHTTPClient::EncodeUrl(GetFullPath(path));
     client->SetProgressFnCallback(nullptr, NothingCallback);
-    if (client->Get(encoded_url, headers, res))
+    RangeTransferContext out = {&res, nullptr, (char*)buffer, 0, size, 0, false, false};
+    if (client->Get(encoded_url, headers, res, (void*) &WriteBufferCallback, (void*) &out))
     {
-        uint64_t len = MIN(size, res.strBody.size());
-        memcpy(buffer, res.strBody.data(), len);
-        return 1;
+        if (res.iCode == 206 && out.valid && out.written == size)
+            return 1;
     }
     else
     {
-        sprintf(this->response, "%s", res.errMessage.c_str());
+        if (out.checked && !out.valid)
+            sprintf(this->response, "%s", "Remote server did not honor the Range request");
+        else
+            sprintf(this->response, "%s", res.errMessage.c_str());
     }
     return 0;
 }
@@ -409,6 +493,14 @@ ClientType BaseClient::clientType()
 uint32_t BaseClient::SupportedActions()
 {
     return REMOTE_ACTION_DOWNLOAD | REMOTE_ACTION_INSTALL | REMOTE_ACTION_EXTRACT;
+}
+
+std::string BaseClient::GetDirectUrl(const std::string &path)
+{
+    if (this->host_url.empty())
+        return "";
+
+    return this->host_url + CHTTPClient::EncodeUrl(GetFullPath(path));
 }
 
 std::string BaseClient::Escape(const std::string &url)

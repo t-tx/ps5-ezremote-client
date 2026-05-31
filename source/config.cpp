@@ -43,6 +43,7 @@ char temp_folder[256];
 std::string ezremote_server_version;
 bool enable_background_download;
 uint64_t minimum_backgrond_file_size;
+bool enable_direct_download_redirect;
 
 unsigned char cipher_key[32] = {'s', '5', 'v', '8', 'y', '/', 'B', '?', 'E', '(', 'H', '+', 'M', 'b', 'Q', 'e', 'T', 'h', 'W', 'm', 'Z', 'q', '4', 't', '7', 'w', '9', 'z', '$', 'C', '&', 'F'};
 unsigned char cipher_iv[16] = {'Y', 'p', '3', 's', '6', 'v', '9', 'y', '$', 'B', '&', 'E', ')', 'H', '@', 'M'};
@@ -171,6 +172,9 @@ namespace CONFIG
 
         minimum_backgrond_file_size = ReadLong(CONFIG_GLOBAL, CONFIG_BG_DOWNLOAD_SIZE, 1024*1024*1024);
         WriteLong(CONFIG_GLOBAL, CONFIG_BG_DOWNLOAD_SIZE, minimum_backgrond_file_size);
+
+        enable_direct_download_redirect = ReadBool(CONFIG_GLOBAL, CONFIG_ENABLE_DIRECT_DOWNLOAD_REDIRECT, false);
+        WriteBool(CONFIG_GLOBAL, CONFIG_ENABLE_DIRECT_DOWNLOAD_REDIRECT, enable_direct_download_redirect);
 
         if (!FS::FolderExists(temp_folder))
         {
@@ -332,6 +336,7 @@ namespace CONFIG
         WriteBool(CONFIG_HTTP_SERVER, CONFIG_HTTP_SERVER_ENABLED, web_server_enabled);
         WriteBool(CONFIG_GLOBAL, CONFIG_ENABLE_BG_DOWNLOAD, enable_background_download);
         WriteLong(CONFIG_GLOBAL, CONFIG_BG_DOWNLOAD_SIZE, minimum_backgrond_file_size);
+        WriteBool(CONFIG_GLOBAL, CONFIG_ENABLE_DIRECT_DOWNLOAD_REDIRECT, enable_direct_download_redirect);
 
         WriteIniFile(CONFIG_INI_FILE);
         CloseIniFile();

@@ -43,7 +43,10 @@ std::string MediaFireHost::GetDownloadUrl()
             document = lxb_html_document_create();
             status = lxb_html_document_parse(document, (lxb_char_t *)res.strBody.data(), res.strBody.size());
             if (status != LXB_STATUS_OK)
+            {
+                lxb_html_document_destroy(document);
                 return "";
+            }
             collection = lxb_dom_collection_make(&document->dom_document, 128);
             if (collection == NULL)
             {

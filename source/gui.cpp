@@ -11,6 +11,7 @@ int gui_mode = GUI_MODE_BROWSER;
 
 namespace GUI
 {
+#include <mutex>
 	int RenderLoop(SDL_Renderer *renderer)
 	{
 		Windows::Init();
@@ -28,9 +29,12 @@ namespace GUI
 				ImGui_ImplSDL2_NewFrame();
 				ImGui::NewFrame();
 
-				Windows::HandleWindowInput();
-				Windows::MainWindow();
-				Windows::ExecuteActions();
+				{
+					std::lock_guard<std::recursive_mutex> lock(files_mutex);
+					Windows::HandleWindowInput();
+					Windows::MainWindow();
+					Windows::ExecuteActions();
+				}
 
 				ImGui::Render();
 				ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());

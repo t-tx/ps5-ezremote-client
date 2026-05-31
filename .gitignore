@@ -10,6 +10,12 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
-build
+build/
 .vscode
 build.log
+ps5upload/
+
+# Scratch & test files
+*.o
+*.py
+test_*

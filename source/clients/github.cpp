@@ -296,7 +296,15 @@ bool GithubClient::ParseReleases()
             if (HTTP_SUCCESS(res.iCode))
             {
                 json_object *jobj = json_tokener_parse(res.strBody.data());
+                if (jobj == nullptr)
+                    return 0;
+
                 struct array_list *areleases = json_object_get_array(jobj);
+                if (areleases == nullptr)
+                {
+                    json_object_put(jobj);
+                    return 0;
+                }
 
                 for (size_t release_idx = 0; release_idx < areleases->length; ++release_idx)
                 {
@@ -353,6 +361,7 @@ bool GithubClient::ParseReleases()
                 }
                 
                 releases_parsed = true;
+                json_object_put(jobj);
                 return 1;
             }
         }
@@ -375,4 +384,9 @@ std::string GithubClient::GetDownloadUrl(const std::string &path)
     }
 
     return this->m_download_url + CHTTPClient::EncodeUrl(m_assets[path_parts[0]][path_parts[1]].url);
+}
+
+std::string GithubClient::GetDirectUrl(const std::string &path)
+{
+    return GetDownloadUrl(path);
 }

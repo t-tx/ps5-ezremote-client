@@ -37,7 +37,7 @@ int SplitFile::Open()
     return (block_in_progress->fd == nullptr);
 }
 
-size_t SplitFile::Read(char *buf, size_t buf_size, size_t offset)
+ssize_t SplitFile::Read(char *buf, size_t buf_size, size_t offset)
 {
     int first_block_num, block_num;
     size_t block_offset;
@@ -48,30 +48,38 @@ size_t SplitFile::Read(char *buf, size_t buf_size, size_t offset)
     FILE *fd;
     char *p;
 
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+
+    auto wait_for_block = [&](int requested_block) {
+        while ((requested_block >= this->file_blocks.size() && !this->complete) ||
+               (requested_block < this->file_blocks.size() && this->file_blocks[requested_block] != nullptr && this->file_blocks[requested_block]->status == BLOCK_STATUS_NOT_EXISTS))
+        {
+            struct timespec ts;
+            clock_gettime(CLOCK_REALTIME, &ts);
+            ts.tv_sec += 2;
+            lock.unlock();
+            sem_timedwait(&this->block_ready, &ts);
+            lock.lock();
+        }
+
+        return requested_block < this->file_blocks.size();
+    };
+
     first_block_num= offset / this->block_size;
     block_num = first_block_num;
     block_offset = offset % this->block_size;
 
-    while ((block_num >= this->file_blocks.size() && !this->complete) ||
-           (block_num < this->file_blocks.size() && this->file_blocks[block_num]->status == BLOCK_STATUS_NOT_EXISTS))
-    {
-        struct timespec ts;
-        clock_gettime(CLOCK_REALTIME, &ts);
-        ts.tv_sec += 2;
-        sem_timedwait(&this->block_ready, &ts);
-    }
-
     // If complete and block_num is past the end, the requested offset is beyond EOF
-    if (block_num >= this->file_blocks.size())
+    if (!wait_for_block(block_num))
         return 0;
 
     block = this->file_blocks[block_num];
-    if (block->status == BLOCK_STATUS_DELETED)
+    if (block == nullptr || block->status == BLOCK_STATUS_DELETED)
     {
         return -1;
     }
 
-    if (block_offset > block->size - 1 && this->complete)
+    if (block_offset >= block->size && this->complete)
     {
         // requested offset is pass the end of split file
         return 0;
@@ -91,7 +99,11 @@ size_t SplitFile::Read(char *buf, size_t buf_size, size_t offset)
             block->fd = fd;
         }
 
-        fseek(fd, block_offset, SEEK_SET);
+        if (fd == nullptr)
+            return -1;
+
+        if (fseek(fd, block_offset, SEEK_SET) != 0)
+            return -1;
         bytes_read = fread(p, 1, remaining, fd);
 
         if (bytes_read == remaining)
@@ -123,20 +135,13 @@ size_t SplitFile::Read(char *buf, size_t buf_size, size_t offset)
         block_num++;
         block_offset = 0;
 
-        while ((block_num > this->file_blocks.size() - 1 && !this->complete) ||
-               (block_num < this->file_blocks.size() && this->file_blocks[block_num]->status == BLOCK_STATUS_NOT_EXISTS))
-        {
-            struct timespec ts;
-            clock_gettime(CLOCK_REALTIME, &ts);
-            ts.tv_sec += 2;
-            sem_timedwait(&this->block_ready, &ts);
-        }
-
         // If complete and block_num is past the end, no more data
-        if (block_num >= this->file_blocks.size())
+        if (!wait_for_block(block_num))
             break;
 
         block = this->file_blocks[block_num];
+        if (block == nullptr || block->status == BLOCK_STATUS_DELETED)
+            return -1;
     }
 
     // delete blocks before the first read offset block. Assumuption, that reads are always
@@ -163,6 +168,7 @@ size_t SplitFile::Read(char *buf, size_t buf_size, size_t offset)
 
 ssize_t SplitFile::Write(char *buf, size_t buf_size)
 {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     size_t bytes_written = 0;
     size_t block_space_remaining;
     size_t bytes_to_write;
@@ -171,7 +177,7 @@ ssize_t SplitFile::Write(char *buf, size_t buf_size)
     ssize_t total_bytes_written = 0;
     size_t remaining_to_write = buf_size;
 
-    if (this->IsClosed())
+    if (this->complete)
         return -1;
 
     while (remaining_to_write > 0 && !this->complete)
@@ -235,15 +241,27 @@ int SplitFile::Close()
     // in 5 mins then go ahead and delete all file chunks
     int retries = 10;
     size_t prev_read_offset = 0;
-    while (this->read_offset != this->write_offset && retries > 0)
+    while (retries > 0)
     {
-        if (prev_read_offset == this->read_offset)
+        size_t cur_read_offset;
+        size_t cur_write_offset;
+        {
+            std::unique_lock<std::shared_mutex> lock(mutex_);
+            cur_read_offset = this->read_offset;
+            cur_write_offset = this->write_offset;
+        }
+
+        if (cur_read_offset == cur_write_offset)
+            break;
+
+        if (prev_read_offset == cur_read_offset)
             retries--;
-        prev_read_offset = this->read_offset;
+        prev_read_offset = cur_read_offset;
         sleep(1);
     }
     sleep(5);
 
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     for (size_t j = 0; j < this->file_blocks.size(); j++)
     {
         if (this->file_blocks[j] != nullptr && this->file_blocks[j]->status == BLOCK_STATUS_CREATED)
@@ -256,6 +274,7 @@ int SplitFile::Close()
 
 bool SplitFile::IsClosed()
 {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     return this->complete;
 }
 

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <string.h>
+#include <algorithm>
 #include <lexbor/html/parser.h>
 #include <lexbor/dom/interfaces/element.h>
 
@@ -45,30 +46,24 @@ struct DirEntry
         return strcmp(a.name, b.name) < 0;
     }
 
-    static int DirEntryComparator(const void *v1, const void *v2)
+    static void Sort(std::vector<DirEntry> &list, int sort_by = 0)
     {
-        const DirEntry *p1 = (DirEntry *)v1;
-        const DirEntry *p2 = (DirEntry *)v2;
-        if (strcasecmp(p1->name, "..") == 0)
-            return -1;
-        if (strcasecmp(p2->name, "..") == 0)
-            return 1;
+        std::sort(list.begin(), list.end(), [sort_by](const DirEntry &p1, const DirEntry &p2) {
+            if (strcasecmp(p1.name, "..") == 0) return true;
+            if (strcasecmp(p2.name, "..") == 0) return false;
 
-        if (p1->isDir && !p2->isDir)
-        {
-            return -1;
-        }
-        else if (!p1->isDir && p2->isDir)
-        {
-            return 1;
-        }
+            if (p1.isDir && !p2.isDir) return true;
+            if (!p1.isDir && p2.isDir) return false;
 
-        return strcasecmp(p1->name, p2->name);
-    }
-
-    static void Sort(std::vector<DirEntry> &list)
-    {
-        qsort(&list[0], list.size(), sizeof(DirEntry), DirEntryComparator);
+            if (sort_by == 1) { // Size
+                if (p1.isDir && p2.isDir) {
+                    return strcasecmp(p1.name, p2.name) < 0;
+                }
+                if (p1.file_size == p2.file_size) return strcasecmp(p1.name, p2.name) < 0;
+                return p1.file_size > p2.file_size; // descending
+            }
+            return strcasecmp(p1.name, p2.name) < 0;
+        });
     }
 
     static void SetDisplaySize(DirEntry *entry)
@@ -96,6 +91,7 @@ struct DownloadProgress
 {
     std::string path;
     std::string state;
+    std::string fail_reason;
     uint64_t bytes_transfered;
     uint64_t file_size;
     time_t timestamp;

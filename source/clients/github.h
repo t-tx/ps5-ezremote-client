@@ -20,6 +20,7 @@ public:
     int Head(const std::string &path, void *buffer, uint64_t len);
     bool FileExists(const std::string &path);
     std::string GetDownloadUrl(const std::string &path);
+    std::string GetDirectUrl(const std::string &path);
 
 private:
     struct GitAsset

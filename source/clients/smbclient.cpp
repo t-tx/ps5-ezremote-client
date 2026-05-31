@@ -18,10 +18,13 @@
 
 SmbClient::SmbClient()
 {
+	smb2 = nullptr;
 }
 
 SmbClient::~SmbClient()
 {
+	if (smb2 != nullptr)
+		Quit();
 }
 
 int SmbClient::Connect(const std::string &url, const std::string &user, const std::string &pass, bool send_ping)
@@ -316,6 +319,8 @@ int SmbClient::GetRange(void *fp, DataSink &sink, uint64_t size, uint64_t offset
 	smb2_lseek(smb2, in, offset, SEEK_SET, NULL);
 
 	uint8_t *buff = (uint8_t *)malloc(max_read_size);
+	if (buff == NULL)
+		return 0;
 	int count = 0;
 	size_t bytes_remaining = size;
 	do
@@ -340,7 +345,7 @@ int SmbClient::GetRange(void *fp, DataSink &sink, uint64_t size, uint64_t offset
 
 	free((char *)buff);
 
-	return 1;
+	return bytes_remaining == 0;
 }
 
 

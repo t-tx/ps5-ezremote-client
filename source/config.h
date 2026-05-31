@@ -68,6 +68,7 @@
 
 #define CONFIG_ENABLE_BG_DOWNLOAD "enable_background_download"
 #define CONFIG_BG_DOWNLOAD_SIZE "minimum_backgrond_file_size"
+#define CONFIG_ENABLE_DIRECT_DOWNLOAD_REDIRECT "enable_direct_download_redirect"
 
 #define HTTP_SERVER_APACHE "Apache"
 #define HTTP_SERVER_MS_IIS "Microsoft IIS"
@@ -78,7 +79,7 @@
 #define HTTP_SERVER_MYRIENT "Myrient"
 #define HTTP_SERVER_GITHUB "Github"
 
-#define EZREMOTE_SERVER_REQUIRED_VERSION "1.03"
+#define EZREMOTE_SERVER_REQUIRED_VERSION "1.04"
 
 #define MAX_EDIT_FILE_SIZE 32768
 
@@ -135,6 +136,7 @@ extern char temp_folder[256];
 extern std::string ezremote_server_version;
 extern bool enable_background_download;
 extern uint64_t minimum_backgrond_file_size;
+extern bool enable_direct_download_redirect;
 
 namespace CONFIG
 {

@@ -3,6 +3,7 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <set>
+#include <mutex>
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "common.h"
@@ -17,6 +18,7 @@ extern bool handle_updates;
 extern uint64_t bytes_transfered;
 extern uint64_t bytes_to_download;
 extern uint64_t prev_tick;;
+extern std::recursive_mutex files_mutex;
 extern std::vector<DirEntry> local_files;
 extern std::vector<DirEntry> remote_files;
 extern std::set<DirEntry> multi_selected_local_files;
@@ -46,6 +48,12 @@ extern char zip_file_path[];
 extern std::vector<std::string> edit_buffer;
 extern bool is_server_started;
 extern bool ezremote_server_version_match;
+extern bool filter_pkg_local;
+extern int filter_pkg_local_level;
+extern int local_sort_option;
+extern bool filter_pkg_remote;
+extern int filter_pkg_remote_level;
+extern int remote_sort_option;
 
 static ImVector<ImRect> s_GroupPanelLabelStack;
 
@@ -216,6 +224,8 @@ namespace Windows
     void AfterHttpPortChangeCallback(int ime_result);
     void AfterMinBgDlSizeChangeCallback(int ime_result);
     void AfterEditorCallback(int ime_result);
+    void AfterLocalFilterCallback(int ime_result);
+    void AfterRemoteFilterCallback(int ime_result);
 }
 
 #endif

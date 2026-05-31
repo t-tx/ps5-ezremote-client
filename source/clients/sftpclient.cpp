@@ -21,7 +21,10 @@ SFTPClient::SFTPClient()
     sock = 0;
 };
 
-SFTPClient::~SFTPClient(){};
+SFTPClient::~SFTPClient()
+{
+    Quit();
+};
 
 int SFTPClient::Connect(const std::string &url, const std::string &username, const std::string &password, bool send_ping)
 {
@@ -88,29 +91,37 @@ int SFTPClient::Connect(const std::string &url, const std::string &username, con
     if (connect(sock, (struct sockaddr *)(&server_addr), sizeof(struct sockaddr_in)) != 0)
     {
         sprintf(this->response, "%s", "Failed to connect!");
+        close(sock);
+        sock = 0;
         return 0;
     }
     /* Create a session instance
      */
     session = libssh2_session_init();
-    libssh2_session_set_blocking(session, 1);
-    libssh2_keepalive_config(session, 1, 5);
-
     if (!session)
     {
         sprintf(this->response, "%s", lang_strings[STR_FAILED]);
+        close(sock);
+        sock = 0;
         return 0;
     }
+    libssh2_session_set_blocking(session, 1);
+    libssh2_keepalive_config(session, 1, 5);
 
     /* ... start it up. This will trade welcome banners, exchange keys,
      * and setup crypto, compression, and MAC layers
      */
+    const char *fingerprint = nullptr;
+    char *userauthlist = nullptr;
+    int auth_pw = 0;
+    bool use_identity = false;
+
     usleep(100000);
     int rc = libssh2_session_handshake(session, sock);
     if (rc)
     {
         sprintf(this->response, "Failed SSL handshake %d", rc);
-        return 0;
+        goto shutdown;
     }
 
     /* At this point we havn't yet authenticated.  The first thing to do
@@ -118,12 +129,16 @@ int SFTPClient::Connect(const std::string &url, const std::string &username, con
      * may have it hard coded, may go to a file, may present it to the
      * user, that's your call
      */
-    const char *fingerprint = libssh2_hostkey_hash(session, LIBSSH2_HOSTKEY_HASH_SHA1);
+    fingerprint = libssh2_hostkey_hash(session, LIBSSH2_HOSTKEY_HASH_SHA1);
 
     /* check what authentication methods are available */
-    char *userauthlist = libssh2_userauth_list(session, username.c_str(), username.length());
+    userauthlist = libssh2_userauth_list(session, username.c_str(), username.length());
+    if (userauthlist == nullptr)
+    {
+        sprintf(this->response, "%s", "No supported authentication methods found!");
+        goto shutdown;
+    }
 
-    int auth_pw = 0;
     if (strstr(userauthlist, "password") != NULL)
     {
         auth_pw |= 1;
@@ -137,7 +152,7 @@ int SFTPClient::Connect(const std::string &url, const std::string &username, con
         auth_pw |= 4;
     }
 
-    bool use_identity = password.find("file://") != std::string::npos;
+    use_identity = password.find("file://") != std::string::npos;
     if (auth_pw & 1 && !use_identity)
     {
         /* We could authenticate via password */
@@ -175,15 +190,25 @@ int SFTPClient::Connect(const std::string &url, const std::string &username, con
     }
 
     sftp_session = libssh2_sftp_init(session);
+    if (sftp_session == nullptr)
+    {
+        sprintf(this->response, "%s", "Failed to initialize SFTP session");
+        goto shutdown;
+    }
     this->connected = true;
     return 1;
 
 shutdown:
-    libssh2_session_disconnect(session, "Normal Shutdown");
-    libssh2_session_free(session);
-    close(sock);
+    if (session != nullptr)
+    {
+        libssh2_session_disconnect(session, "Normal Shutdown");
+        libssh2_session_free(session);
+    }
+    if (sock != 0)
+        close(sock);
     libssh2_exit();
     session = nullptr;
+    sftp_session = nullptr;
     sock = 0;
     return 0;
 }
@@ -278,10 +303,17 @@ int SFTPClient::Get(const std::string &outputfile, const std::string &path, uint
     if (out == NULL)
     {
         sprintf(response, "%s", lang_strings[STR_FAILED]);
+        libssh2_sftp_close(sftp_handle);
         return 0;
     }
 
     char *buff = (char *)malloc(FTP_CLIENT_BUFSIZ);
+    if (buff == nullptr)
+    {
+        FS::Close(out);
+        libssh2_sftp_close(sftp_handle);
+        return 0;
+    }
     int rc, count = 0;
     bytes_transfered = 0;
     prev_tick = Util::GetTick();
@@ -316,6 +348,11 @@ int SFTPClient::Get(SplitFile *split_file, const std::string &path, uint64_t off
     }
 
     char *buff = (char *)malloc(FTP_CLIENT_BUFSIZ);
+    if (buff == nullptr)
+    {
+        libssh2_sftp_close(sftp_handle);
+        return 0;
+    }
     int rc, count = 0;
 
     do
@@ -363,6 +400,8 @@ int SFTPClient::GetRange(void *fp, DataSink &sink, uint64_t size, uint64_t offse
     libssh2_sftp_seek64(sftp_handle, offset);
 
     char *buff = (char *)malloc(FTP_CLIENT_BUFSIZ);
+    if (buff == nullptr)
+        return 0;
     int rc, count = 0;
     size_t bytes_remaining = size;
     do
@@ -387,7 +426,7 @@ int SFTPClient::GetRange(void *fp, DataSink &sink, uint64_t size, uint64_t offse
 
     free((char *)buff);
 
-    return 1;
+    return bytes_remaining == 0;
 }
 
 int SFTPClient::GetRange(const std::string &path, void *buffer, uint64_t size, uint64_t offset)
@@ -468,10 +507,17 @@ int SFTPClient::Put(const std::string &inputfile, const std::string &path, uint6
     if (!sftp_handle)
     {
         sprintf(response, "%s", "Unable to open file with SFTP");
+        FS::Close(in);
         return 0;
     }
 
     buff = (char *)malloc(FTP_CLIENT_BUFSIZ);
+    if (buff == nullptr)
+    {
+        libssh2_sftp_close(sftp_handle);
+        FS::Close(in);
+        return 0;
+    }
     int nread, count = 0;
     bytes_transfered = 0;
     prev_tick = Util::GetTick();
@@ -652,6 +698,7 @@ std::vector<DirEntry> SFTPClient::ListDir(const std::string &path)
 
     } while (1);
 
+    libssh2_sftp_closedir(sftp_handle);
     return out;
 }
 

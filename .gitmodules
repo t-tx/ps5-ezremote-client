@@ -3,4 +3,4 @@
 	url = git@github.com:cy33hc/ps5-ezremote-dpi.git
 [submodule "ps5-ezremote-server"]
 	path = ps5-ezremote-server
-	url = git@github.com:cy33hc/ps5-ezremote-server.git
+    url = git@github.com:t-tx/ps5-ezremote-server.git

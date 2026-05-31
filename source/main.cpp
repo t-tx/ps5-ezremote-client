@@ -17,7 +17,7 @@
 #include "installer.h"
 #include "util.h"
 #include "textures.h"
-//#include "dbglogger.h"
+#include "dbglogger.h"
 
 extern "C"
 {
@@ -269,8 +269,8 @@ static void terminate()
 
 int main()
 {
-	// dbglogger_init();
-	// dbglogger_log("If you see this you've set up dbglogger correctly.");
+	dbglogger_init_str("file:/data/homebrew/ezremote-client/client.log");
+	dbglogger_log("ezRemote Client started.");
 
 	// No buffering
 	setvbuf(stdout, NULL, _IONBF, 0);
@@ -288,7 +288,6 @@ int main()
 
 	CONFIG::LoadConfig();
 	HttpServer::Start();
-	INSTALLER::StartDirectPackageInstaller();
 	INSTALLER::StartEzRemoteServer();
 
 	// Create a window context

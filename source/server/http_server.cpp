@@ -33,6 +33,7 @@
 #include "lang.h"
 #include "zip_util.h"
 #include "util.h"
+#include "dbglogger.h"
 
 #define SUCCESS_MSG "{ \"result\": { \"success\": true, \"error\": null } }"
 #define FAILURE_MSG "{ \"result\": { \"success\": false, \"error\": \"%s\" } }"
@@ -222,15 +223,50 @@ namespace HttpServer
         tmp_client->Quit();
         delete tmp_client;
     }
-    
+
     void *ServerThread(void *argp)
     {
+    dbglogger_log("Thread ServerThread started.");
+    pthread_detach(pthread_self());
+        auto serve_log_file = [&](const std::string& path, Response &res) {
+            if (!FS::FileExists(path.c_str())) {
+                res.status = 404;
+                res.set_content("Log file not found", "text/plain");
+                return;
+            }
+            FILE *in = FS::OpenRead(path.c_str());
+            if (in == nullptr) {
+                res.status = 500;
+                res.set_content("Could not open log file", "text/plain");
+                return;
+            }
+            size_t size = FS::GetSize(path.c_str());
+            std::string content;
+            content.resize(size);
+            FS::Read(in, (void*)content.data(), size);
+            FS::Close(in);
+            res.set_content(content, "text/plain");
+        };
+
+        svr->Get("/debug/client.log", [&](const Request &req, Response &res)
+                 { serve_log_file("/data/homebrew/ezremote-client/client.log", res); });
+
+        svr->Get("/debug/server.log", [&](const Request &req, Response &res)
+                 { serve_log_file("/data/homebrew/ezremote-client/server.log", res); });
+
+        svr->Get("/debug/log", [&](const Request &req, Response &res)
+                 { res.set_redirect("/debug/client.log"); });
+
         svr->Get("/", [&](const Request &req, Response &res)
                  { res.set_redirect("/index.html"); });
 
         svr->Get("/index.html", [&](const Request &req, Response &res)
                  {
             FILE *in = FS::OpenRead("/data/homebrew/ezremote-client/assets/index.html");
+            if (in == nullptr) {
+                res.status = 404;
+                return;
+            }
             size_t size = FS::GetSize("/data/homebrew/ezremote-client/assets/index.html");
             res.set_content_provider(
                 size, "text/html",
@@ -247,9 +283,36 @@ namespace HttpServer
                     FS::Close(in);
                 }); });
 
+        svr->Get("/__local__/tmp_icon.png", [&](const Request &req, Response &res)
+                 {
+            FILE *in = FS::OpenRead("/data/homebrew/ezremote-client/tmp_icon.png");
+            if (!in) {
+                res.status = 404;
+                return;
+            }
+            size_t size = FS::GetSize("/data/homebrew/ezremote-client/tmp_icon.png");
+            res.set_content_provider(
+                size, "image/png",
+                [in](size_t offset, size_t length, DataSink &sink) {
+                    size_t size_to_read = std::min(static_cast<size_t>(length), (size_t)1048576);
+                    std::vector<char> buff(size_to_read);
+                    size_t read_len;
+                    FS::Seek(in, offset);
+                    read_len = FS::Read(in, buff.data(), size_to_read);
+                    sink.write(buff.data(), read_len);
+                    return read_len == size_to_read;
+                },
+                [in](bool success) {
+                    FS::Close(in);
+                }); });
+
         svr->Get("/favicon.ico", [&](const Request &req, Response &res)
                  {
             FILE *in = FS::OpenRead("/data/homebrew/ezremote-client/assets/favicon.ico");
+            if (in == nullptr) {
+                res.status = 404;
+                return;
+            }
             size_t size = FS::GetSize("/data/homebrew/ezremote-client/assets/favicon.ico");
             res.set_content_provider(
                 size, "image/vnd.microsoft.icon",
@@ -280,6 +343,7 @@ namespace HttpServer
                 if (path == nullptr)
                 {
                     bad_request(res, "Required path parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
             }
@@ -314,7 +378,9 @@ namespace HttpServer
             const char *results_str = json_object_to_json_string(results);
 
             res.status = 200;
-            res.set_content(results_str, strlen(results_str), "application/json"); });
+            res.set_content(results_str, strlen(results_str), "application/json");
+            json_object_put(results);
+            json_object_put(jobj); });
 
         svr->Post("/__local__/rename", [&](const Request &req, Response &res)
         {
@@ -328,6 +394,7 @@ namespace HttpServer
                 if (item == nullptr || newItemPath == nullptr)
                 {
                     bad_request(res, "Required item or newItemPath parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
             }
@@ -339,6 +406,7 @@ namespace HttpServer
 
             FS::Rename(item, newItemPath);
             success(res);
+            json_object_put(jobj);
             return; });
 
         svr->Post("/__local__/move", [&](const Request &req, Response &res)
@@ -359,6 +427,7 @@ namespace HttpServer
                 if (items == nullptr || newPath == nullptr)
                 {
                     bad_request(res, "Required items or newPath parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
             }
@@ -399,7 +468,8 @@ namespace HttpServer
                 failed(res, 200, error_msg);
             }
             else
-                success(res); });
+                success(res);
+            json_object_put(jobj); });
 
         svr->Post("/__local__/copy", [&](const Request &req, Response &res)
         {
@@ -423,6 +493,7 @@ namespace HttpServer
                 if (items == nullptr || newPath == nullptr)
                 {
                     bad_request(res, "Required items or newPath or singleFilename parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
             }
@@ -479,7 +550,8 @@ namespace HttpServer
                 failed(res, 200, error_msg);
             }
             else
-                success(res); });
+                success(res);
+            json_object_put(jobj); });
 
         svr->Post("/__local__/remove", [&](const Request &req, Response &res)
         {
@@ -497,6 +569,7 @@ namespace HttpServer
                 if (items == nullptr)
                 {
                     bad_request(res, "Required items parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
             }
@@ -524,7 +597,8 @@ namespace HttpServer
                 failed(res, 200, error_msg);
             }
             else
-                success(res); });
+                success(res);
+            json_object_put(jobj); });
 
         svr->Post("/__local__/install", [&](const Request &req, Response &res)
         {
@@ -542,6 +616,7 @@ namespace HttpServer
                 if (items == nullptr)
                 {
                     bad_request(res, "Required items parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
             }
@@ -567,6 +642,7 @@ namespace HttpServer
             }
             else
                 success(res);
+            json_object_put(jobj);
         });
 
         svr->Post("/__local__/edit", [&](const Request &req, Response &res)
@@ -584,6 +660,7 @@ namespace HttpServer
                 if (item == nullptr || content == nullptr)
                 {
                     bad_request(res, "Required item or content parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
             }
@@ -597,10 +674,12 @@ namespace HttpServer
             if (!ret)
             {
                 failed(res, 200, "Failed to save content to file.");
+                json_object_put(jobj);
                 return;
             }
 
-            success(res); });
+            success(res);
+            json_object_put(jobj); });
 
         svr->Post("/__local__/getContent", [&](const Request &req, Response &res)
         {
@@ -612,6 +691,7 @@ namespace HttpServer
                 if (item == nullptr)
                 {
                     bad_request(res, "Required item parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
             }
@@ -628,6 +708,8 @@ namespace HttpServer
 
             res.status = 200;
             res.set_content(result_str, strlen(result_str), "application/json");
+            json_object_put(result);
+            json_object_put(jobj);
         });
 
         svr->Post("/__local__/createFolder", [&](const Request &req, Response &res)
@@ -640,6 +722,7 @@ namespace HttpServer
                 if (newPath == nullptr)
                 {
                     bad_request(res, "Required newPath parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
             }
@@ -650,7 +733,8 @@ namespace HttpServer
             }
 
             FS::MkDirs(newPath);
-            success(res); });
+            success(res);
+            json_object_put(jobj); });
 
         svr->Post("/__local__/permission", [&](const Request &req, Response &res)
                   { failed(res, 200, "Operation not supported"); });
@@ -677,6 +761,7 @@ namespace HttpServer
                 if (items == nullptr || destination == nullptr || compressedFilename == nullptr)
                 {
                     bad_request(res, "Required items,destination,compressedFilename parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
             }
@@ -712,7 +797,8 @@ namespace HttpServer
             else
             {
                 failed(res, 200, "Failed to create zip");
-            } });
+            }
+            json_object_put(jobj); });
 
         svr->Post("/__local__/extract", [&](const Request &req, Response &res)
         {
@@ -736,6 +822,7 @@ namespace HttpServer
                 if (item == nullptr || destination == nullptr || folderName == nullptr)
                 {
                     bad_request(res, "Required item,destination,folderName parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
             }
@@ -757,7 +844,8 @@ namespace HttpServer
             else if (ret == -1)
                 failed(res, 200, "Unsupported compressed file format");
             else
-                success(res); });
+                success(res);
+            json_object_put(jobj); });
 
         svr->Get("/__local__/uploadResumeSize", [&](const Request &req, Response &res)
         {
@@ -940,6 +1028,12 @@ namespace HttpServer
 
                 // start stream the zip
                 FILE *in = FS::OpenRead(zip_file);
+                if (in == nullptr)
+                {
+                    FS::Rm(zip_file);
+                    failed(res, 200, "Failed to open zip file");
+                    return;
+                }
                 uint64_t size = FS::GetSize(zip_file);
                 res.set_header("Content-Disposition", "attachment; filename=\"" + std::string(toFilename) + "\"");
                 res.set_content_provider(
@@ -975,6 +1069,11 @@ namespace HttpServer
 
             int64_t size = FS::GetSize(path);
             FILE *in = FS::OpenRead(path);
+            if (in == nullptr || size < 0)
+            {
+                bad_request(res, "Failed to download");
+                return;
+            }
 
             size_t slash_pos = path.find_last_of("/");
             std::string name = path;
@@ -1095,9 +1194,12 @@ namespace HttpServer
                 [pkg_data](size_t offset, size_t length, DataSink &sink) {
                     size_t size_to_read = std::min(static_cast<size_t>(length), (size_t)1048576);
                     std::vector<char> buf(size_to_read);
-                    size_t bytes_read = pkg_data->split_file->Read(buf.data(), size_to_read, offset);
-                    sink.write(buf.data(), bytes_read);
-                    return true;
+                    ssize_t bytes_read = pkg_data->split_file->Read(buf.data(), size_to_read, offset);
+                    if (bytes_read < 0)
+                        return false;
+                    if (bytes_read > 0 && !sink.write(buf.data(), static_cast<size_t>(bytes_read)))
+                        return false;
+                    return static_cast<size_t>(bytes_read) == size_to_read;
                 },
                 [](bool success) {
                     return true;
@@ -1121,9 +1223,12 @@ namespace HttpServer
                 [pkg_data](size_t offset, size_t length, DataSink &sink) {
                     size_t size_to_read = std::min(static_cast<size_t>(length), (size_t)1048576);
                     std::vector<char> buf(size_to_read);
-                    size_t bytes_read = pkg_data->split_file->Read(buf.data(), size_to_read, offset);
-                    sink.write(buf.data(), bytes_read);
-                    return true;
+                    ssize_t bytes_read = pkg_data->split_file->Read(buf.data(), size_to_read, offset);
+                    if (bytes_read < 0)
+                        return false;
+                    if (bytes_read > 0 && !sink.write(buf.data(), static_cast<size_t>(bytes_read)))
+                        return false;
+                    return static_cast<size_t>(bytes_read) == size_to_read;
                 },
                 [](bool success) {
                     return true;
@@ -1166,8 +1271,12 @@ namespace HttpServer
                 if (url_param == nullptr)
                 {
                     bad_request(res, "Required url_param parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
+
+                url = std::string(url_param);
+                json_object_put(jobj);
             }
             else
             {
@@ -1186,12 +1295,11 @@ namespace HttpServer
                 failed(res, 200, lang_strings[STR_DPI_NOT_STARTED_ERROR_MSG]);
                 return;
             }
-
-            url = std::string(url_param);
             FileHost *filehost = FileHost::getFileHost(url, use_alldebrid, use_realdebrid);
 
             if (!filehost->IsValidUrl())
             {
+                delete(filehost);
                 failed(res, 200, lang_strings[STR_INVALID_URL]);
                 return;
             }
@@ -1225,10 +1333,19 @@ namespace HttpServer
 
             BaseClient *baseclient = new BaseClient();
             baseclient->Connect(host, username, password);
+            auto cleanup_baseclient = [&]() {
+                if (baseclient != nullptr)
+                {
+                    baseclient->Quit();
+                    delete baseclient;
+                    baseclient = nullptr;
+                }
+            };
             
             if (!baseclient->FileExists(path))
             {
                 failed(res, 200, baseclient->LastResponse());
+                cleanup_baseclient();
                 activity_inprogess = false;
                 file_transfering = false;
                 Windows::SetModalMode(false);
@@ -1243,38 +1360,81 @@ namespace HttpServer
             {
                 if (enable_rpi && !use_disk_cache)
                 {
-                    json_object *history_item_obj = json_object_new_object();
-                    json_object_object_add(history_item_obj, "hash", json_object_new_string(hash.c_str()));
-                    json_object_object_add(history_item_obj, "url", json_object_new_string(host.c_str()));
-                    json_object_object_add(history_item_obj, "path", json_object_new_string(path.c_str()));
-                    json_object_object_add(history_item_obj, "username", json_object_new_string(""));
-                    json_object_object_add(history_item_obj, "password", json_object_new_string(""));
-                    json_object_object_add(history_item_obj, "type", json_object_new_int(CLIENT_TYPE_FILEHOST));
+                    std::string remote_install_url = download_url;
+                    bool can_passthrough = username.empty() && password.empty() && INSTALLER::CanDirectDownloadUrl(download_url);
+                    bool needs_redirect = can_passthrough && !INSTALLER::IsSafeDirectInstallUrl(download_url);
+                    
+                    if (!enable_direct_download_redirect) {
+                        needs_redirect = false;
+                        can_passthrough = INSTALLER::IsSafeDirectInstallUrl(download_url);
+                    }
 
-                    const char *params_str = json_object_to_json_string(history_item_obj);
-
-                    CHTTPClient::HttpResponse resp;
-                    CHTTPClient::HeadersMap headers;
-                    CHTTPClient tmp_client([](const std::string& log){});
-                    tmp_client.InitSession(true, CHTTPClient::SettingsFlag::NO_FLAGS);
-                    tmp_client.SetCertificateFile(CACERT_FILE);
-                    headers["Content-Type"] = "application/json";
-
-                    std::string store_bg_install_data_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/store_bg_install_data";
-                    if (tmp_client.Post(store_bg_install_data_url, headers, params_str, resp))
+                    if (can_passthrough && !needs_redirect)
                     {
-                        if (HTTP_SUCCESS(resp.iCode))
-                        {
-                        }
+                        remote_install_url = download_url;
                     }
                     else
                     {
-                        failed(res, 200, "Could not save host data for background install");
-                    }
-                    sleep(2);
+                        json_object *history_item_obj = json_object_new_object();
+                        uint64_t file_size = 0;
+                        baseclient->Size(path, &file_size);
 
-                    std::string remote_install_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/bg_install/" + hash;
+                        json_object_object_add(history_item_obj, "hash", json_object_new_string(hash.c_str()));
+                        json_object_object_add(history_item_obj, "url", json_object_new_string(host.c_str()));
+                        json_object_object_add(history_item_obj, "path", json_object_new_string(path.c_str()));
+                        json_object_object_add(history_item_obj, "username", json_object_new_string(username.c_str()));
+                        json_object_object_add(history_item_obj, "password", json_object_new_string(password.c_str()));
+                        json_object_object_add(history_item_obj, "type", json_object_new_int(CLIENT_TYPE_FILEHOST));
+                        json_object_object_add(history_item_obj, "size", json_object_new_uint64(file_size));
+                        
+                        if (needs_redirect) {
+                            json_object_object_add(history_item_obj, "direct_url", json_object_new_string(download_url.c_str()));
+                        }
+
+                        const char *params_str = json_object_to_json_string(history_item_obj);
+
+                        CHTTPClient::HttpResponse resp;
+                        CHTTPClient::HeadersMap headers;
+                        CHTTPClient tmp_client([](const std::string& log){});
+                        tmp_client.InitSession(true, CHTTPClient::SettingsFlag::NO_FLAGS);
+                        tmp_client.SetCertificateFile(CACERT_FILE);
+                        headers["Content-Type"] = "application/json";
+
+                        std::string store_bg_install_data_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/store_bg_install_data";
+                        if (tmp_client.Post(store_bg_install_data_url, headers, params_str, resp))
+                        {
+                            if (!HTTP_SUCCESS(resp.iCode))
+                            {
+                                json_object_put(history_item_obj);
+                                failed(res, 200, "Could not save host data for background install");
+                                cleanup_baseclient();
+                                activity_inprogess = false;
+                                file_transfering = false;
+                                Windows::SetModalMode(false);
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            json_object_put(history_item_obj);
+                            failed(res, 200, "Could not save host data for background install");
+                            cleanup_baseclient();
+                            activity_inprogess = false;
+                            file_transfering = false;
+                            Windows::SetModalMode(false);
+                            return;
+                        }
+                        json_object_put(history_item_obj);
+                        sleep(2);
+                        if (needs_redirect) {
+                            remote_install_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/bg_redirect/" + hash;
+                        } else {
+                            remote_install_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/bg_install/" + hash;
+                        }
+                    }
+
                     int rc = INSTALLER::InstallRemotePkg(remote_install_url, &header, title);
+                    cleanup_baseclient();
                     activity_inprogess = false;
                     file_transfering = false;
                     Windows::SetModalMode(false);
@@ -1288,6 +1448,7 @@ namespace HttpServer
 
                     install_data->split_file = sp;
                     install_data->remote_client = baseclient;
+                    baseclient = nullptr;
                     install_data->path = path;
                     baseclient->Size(path, &install_data->size);
                     install_data->stop_write_thread = false;
@@ -1320,6 +1481,8 @@ namespace HttpServer
                     install_data->archive_entry = entry;
                     install_data->split_file = sp;
                     install_data->stop_write_thread = false;
+                    install_data->delete_client = true;
+                    baseclient = nullptr;
 
                     int ret = pthread_create(&install_data->thread, NULL, Actions::ExtractArchivePkg, install_data);
 
@@ -1338,12 +1501,14 @@ namespace HttpServer
                 else
                 {
                     failed(res, 200, lang_strings[STR_FAIL_INSTALL_FROM_URL_MSG]);
+                    cleanup_baseclient();
                     activity_inprogess = false;
                     file_transfering = false;
                     Windows::SetModalMode(false);
                     return;
                 }
             }
+            cleanup_baseclient();
             success(res);
     
         });
@@ -1368,8 +1533,13 @@ namespace HttpServer
                 if (url_param == nullptr || dest_param == nullptr)
                 {
                     bad_request(res, "Required url, dest parameter missing");
+                    json_object_put(jobj);
                     return;
                 }
+
+                url = std::string(url_param);
+                dest = std::string(dest_param);
+                json_object_put(jobj);
             }
             else
             {
@@ -1382,12 +1552,11 @@ namespace HttpServer
                 failed(res, 200, lang_strings[STR_ALLDEBRID_API_KEY_MISSING_MSG]);
                 return;
             }
-
-            url = std::string(url_param);
             FileHost *filehost = FileHost::getFileHost(url, use_alldebrid, use_realdebrid);
 
             if (!filehost->IsValidUrl())
             {
+                delete(filehost);
                 failed(res, 200, lang_strings[STR_INVALID_URL]);
                 return;
             }
@@ -1395,6 +1564,7 @@ namespace HttpServer
             std::string download_url = filehost->GetDownloadUrl();
             if (download_url.empty())
             {
+                delete(filehost);
                 failed(res, 200, lang_strings[STR_CANT_EXTRACT_URL_MSG]);
                 return;
             }
@@ -1404,11 +1574,18 @@ namespace HttpServer
 			size_t root_pos = download_url.find("/", scheme_pos + 3);
 			std::string host = download_url.substr(0, root_pos);
 			std::string path = download_url.substr(root_pos);
-            uint64_t file_size;
+			uint64_t file_size = 0;
 
             RemoteClient *baseclient = new BaseClient();
             baseclient->Connect(host, "", "");
-            baseclient->Size(path, &file_size);
+            if (!baseclient->Size(path, &file_size))
+            {
+                failed(res, 200, baseclient->LastResponse());
+                baseclient->Quit();
+                delete baseclient;
+                return;
+            }
+            baseclient->Quit();
             delete baseclient;
 
             uint64_t id = Util::GetTick();
@@ -1418,11 +1595,11 @@ namespace HttpServer
             json_object_object_add(params, "username", json_object_new_string(""));
             json_object_object_add(params, "password", json_object_new_string(""));
             json_object_object_add(params, "src_path", json_object_new_string(path.c_str()));
-            json_object_object_add(params, "dest_path", json_object_new_string(dest_param));
+            json_object_object_add(params, "dest_path", json_object_new_string(dest.c_str()));
             json_object_object_add(params, "size", json_object_new_uint64(file_size));
             json_object_object_add(params, "id", json_object_new_uint64(id));
 
-            const char *params_str = json_object_to_json_string(params);
+            std::string params_payload = json_object_to_json_string(params);
 
             CHTTPClient::HttpResponse resp;
             CHTTPClient::HeadersMap headers;
@@ -1432,22 +1609,35 @@ namespace HttpServer
             headers["Content-Type"] = "application/json";
 
             std::string download_req_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/download_url";
-            if (tmp_client.Post(download_req_url, headers, params_str, resp))
+            if (tmp_client.Post(download_req_url, headers, params_payload.c_str(), resp))
             {
                 if (HTTP_SUCCESS(resp.iCode))
                 {
-                    Util::RichNotify(id, "%s queued for download", path.c_str());
-                    success(res);
-                    return;
-                }
-                else
-                {
-                    Util::RichNotify(id, "Failed to queue %s for download in background", path.c_str());
-                    failed(res, 200, "Failed to download");
-                    return;
+                    bool queued = true;
+                    if (!resp.strBody.empty())
+                    {
+                        json_object *resp_obj = json_tokener_parse(resp.strBody.data());
+                        if (resp_obj != nullptr)
+                        {
+                            json_object *result = json_object_object_get(resp_obj, "result");
+                            if (result != nullptr)
+                                queued = json_object_get_boolean(json_object_object_get(result, "success"));
+                            json_object_put(resp_obj);
+                        }
+                    }
+
+                    if (queued)
+                    {
+                        Util::RichNotify(id, "%s queued for download", path.c_str());
+                        success(res);
+                        json_object_put(params);
+                        return;
+                    }
                 }
             }
 
+            json_object_put(params);
+            Util::RichNotify(id, "Failed to queue %s for download in background", path.c_str());
             failed(res, 200, "Failed to download");
         });
 
@@ -1521,6 +1711,8 @@ namespace HttpServer
        
         svr->set_payload_max_length(WEB_UPLOAD_PAYLOAD_MAX_LENGTH);
         svr->set_tcp_nodelay(true);
+        FS::MkDirs("/data/homebrew/ezremote-client/game-icons");
+        svr->set_mount_point("/game-icons", "/data/homebrew/ezremote-client/game-icons");
         svr->set_mount_point("/", "/");
 
         if (web_server_enabled)

@@ -41,6 +41,7 @@ public:
     int Quit();
     ClientType clientType();
     uint32_t SupportedActions();
+    std::string GetDirectUrl(const std::string &path);
     static std::string Escape(const std::string &url);
     static std::string UnEscape(const std::string &url);
     static int DownloadProgressCallback(void* ptr, double dTotalToDownload, double dNowDownloaded, double dTotalToUpload, double dNowUploaded);
