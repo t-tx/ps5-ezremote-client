@@ -249,17 +249,43 @@ namespace FS
         if (path == "/")
         {
             *err = 0;
-            // Add /data
-            DirEntry entry_data;
-            memset(&entry_data, 0, sizeof(DirEntry));
-            sprintf(entry_data.directory, "/");
-            sprintf(entry_data.name, "data");
-            sprintf(entry_data.display_size, "%s", lang_strings[STR_FOLDER]);
-            sprintf(entry_data.path, "/data");
-            entry_data.file_size = 0;
-            entry_data.isDir = true;
-            entry_data.selectable = true;
-            out.push_back(entry_data);
+
+            auto check_and_add = [&](const char* full_path, const char* display_name) {
+                DIR *sub_fd = opendir(full_path);
+                if (sub_fd != NULL)
+                {
+                    bool is_empty = true;
+                    struct dirent *sub_dir;
+                    while ((sub_dir = readdir(sub_fd)) != NULL)
+                    {
+                        if (strcmp(sub_dir->d_name, ".") != 0 && strcmp(sub_dir->d_name, "..") != 0)
+                        {
+                            is_empty = false;
+                            break;
+                        }
+                    }
+                    closedir(sub_fd);
+
+                    if (!is_empty)
+                    {
+                        DirEntry entry_mnt;
+                        memset(&entry_mnt, 0, sizeof(DirEntry));
+                        sprintf(entry_mnt.directory, "/");
+                        sprintf(entry_mnt.name, "%s", display_name);
+                        sprintf(entry_mnt.display_size, "%s", lang_strings[STR_FOLDER]);
+                        sprintf(entry_mnt.path, "%s", full_path);
+                        entry_mnt.file_size = 0;
+                        entry_mnt.isDir = true;
+                        entry_mnt.selectable = true;
+                        out.push_back(entry_mnt);
+                    }
+                }
+            };
+
+            check_and_add("/data", "data");
+            check_and_add("/data/etahen", "data/etahen");
+            check_and_add("/data/etaHEN", "data/etaHEN");
+            check_and_add("/data/homebrew", "data/homebrew");
 
             // Add non-empty /mnt/*
             DIR *mnt_fd = opendir("/mnt");
@@ -271,36 +297,11 @@ namespace FS
                     if (strcmp(mnt_dir->d_name, ".") == 0 || strcmp(mnt_dir->d_name, "..") == 0)
                         continue;
 
-                    std::string mnt_path = std::string("/mnt/") + mnt_dir->d_name;
-                    DIR *sub_fd = opendir(mnt_path.c_str());
-                    if (sub_fd != NULL)
-                    {
-                        bool is_empty = true;
-                        struct dirent *sub_dir;
-                        while ((sub_dir = readdir(sub_fd)) != NULL)
-                        {
-                            if (strcmp(sub_dir->d_name, ".") != 0 && strcmp(sub_dir->d_name, "..") != 0)
-                            {
-                                is_empty = false;
-                                break;
-                            }
-                        }
-                        closedir(sub_fd);
+                    if (strncmp(mnt_dir->d_name, "ext", 3) != 0 && strncmp(mnt_dir->d_name, "usb", 3) != 0)
+                        continue;
 
-                        if (!is_empty)
-                        {
-                            DirEntry entry_mnt;
-                            memset(&entry_mnt, 0, sizeof(DirEntry));
-                            sprintf(entry_mnt.directory, "/");
-                            sprintf(entry_mnt.name, "%s", mnt_path.c_str() + 1); // e.g. "mnt/usb0"
-                            sprintf(entry_mnt.display_size, "%s", lang_strings[STR_FOLDER]);
-                            sprintf(entry_mnt.path, "%s", mnt_path.c_str());
-                            entry_mnt.file_size = 0;
-                            entry_mnt.isDir = true;
-                            entry_mnt.selectable = true;
-                            out.push_back(entry_mnt);
-                        }
-                    }
+                    std::string mnt_path = std::string("/mnt/") + mnt_dir->d_name;
+                    check_and_add(mnt_path.c_str(), mnt_path.c_str() + 1);
                 }
                 closedir(mnt_fd);
             }
@@ -342,6 +343,28 @@ namespace FS
                 if (strcmp(dirent->d_name, ".") == 0 || strcmp(dirent->d_name, "..") == 0)
                 {
                     continue;
+                }
+
+                if (path == "/mnt")
+                {
+                    if (strncmp(dirent->d_name, "ext", 3) != 0 && strncmp(dirent->d_name, "usb", 3) != 0)
+                        continue;
+
+                    std::string mnt_path = std::string("/mnt/") + dirent->d_name;
+                    DIR *sub_fd = opendir(mnt_path.c_str());
+                    bool is_empty = true;
+                    if (sub_fd != NULL) {
+                        struct dirent *sub_dir;
+                        while ((sub_dir = readdir(sub_fd)) != NULL) {
+                            if (strcmp(sub_dir->d_name, ".") != 0 && strcmp(sub_dir->d_name, "..") != 0) {
+                                is_empty = false;
+                                break;
+                            }
+                        }
+                        closedir(sub_fd);
+                    }
+                    if (is_empty)
+                        continue;
                 }
 
                 snprintf(entry.directory, 512, "%s", path.c_str());

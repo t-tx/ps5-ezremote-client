@@ -1,0 +1,427 @@
+cmake -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=/opt/ps5-payload-sdk/toolchain/prospero.cmake
+-- Configuring done (0.0s)
+-- Generating done (0.4s)
+-- Build files have been written to: /workspace/build
+cmake --build build
+Change Dir: '/workspace/build'
+
+Run Build Command(s): /usr/bin/ninja -v
+[1/4] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o -c /workspace/ps5-ezremote-server/source/wrapper/installer.cpp
+FAILED: ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o 
+/opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o -c /workspace/ps5-ezremote-server/source/wrapper/installer.cpp
+In file included from /workspace/ps5-ezremote-server/source/wrapper/installer.cpp:11:
+/workspace/ps5-ezremote-server/source/clients/webdav.h:21:9: warning: 'WebDAVClient::Size' hides overloaded virtual function [-Woverloaded-virtual]
+   21 |     int Size(const std::string &path, int64_t *size);
+      |         ^
+/workspace/ps5-ezremote-server/source/clients/baseclient.h:19:9: note: hidden overloaded virtual function 'BaseClient::Size' declared here: type mismatch at 2nd parameter ('uint64_t *' (aka 'unsigned long *') vs 'int64_t *' (aka 'long *'))
+   19 |     int Size(const std::string &path, uint64_t *size);
+      |         ^
+In file included from /workspace/ps5-ezremote-server/source/wrapper/installer.cpp:29:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:722:9: warning: unused variable 'icon0_png_data' [-Wunused-variable]
+  722 |                 void *icon0_png_data = NULL;
+      |                       ^~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:723:12: warning: unused variable 'icon0_png_offset' [-Wunused-variable]
+  723 |                 uint32_t icon0_png_offset = 0;
+      |                          ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:724:12: warning: unused variable 'icon0_png_size' [-Wunused-variable]
+  724 |                 uint32_t icon0_png_size = 0;
+      |                          ^~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:773:98: error: no member named 'http_server_type' in 'RemoteSettings'
+  773 |                         json_object_object_add(history_item_obj, "http_server_type", json_object_new_string(settings->http_server_type));
+      |                                                                                                             ~~~~~~~~  ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:785:78: error: no matching function for call to 'to_string'
+  785 |                 std::string store_bg_install_data_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/store_bg_install_data";
+      |                                                                                            ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:823:74: error: no matching function for call to 'to_string'
+  823 |                                 std::string full_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/bg_redirect/" + hash;
+      |                                                                                                      ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:828:72: error: no matching function for call to 'to_string'
+  828 |                 std::string full_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/bg_install/" + hash;
+      |                                                                                      ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:879:8: warning: unused variable 'completed' [-Wunused-variable]
+  879 |                 bool completed = false;
+      |                      ^~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:884:24: warning: unused variable 'pkg_info' [-Wunused-variable]
+  884 |                 SceAppInstallPkgInfo pkg_info;
+      |                                      ^~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:974:31: error: use of undeclared identifier 'TMP_SFO_PATH'
+  974 |                         if (ExtractRemotePkg(path, TMP_SFO_PATH, icon_path)) {
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:976:63: error: no matching function for call to 'to_string'
+  976 |                                         icon_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/game-icons/" + title_id + ".png";
+      |                                                                                                  ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:999:7: warning: unused variable 'ret' [-Wunused-variable]
+  999 |                 int ret;
+      |                     ^~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1001:8: warning: unused variable 'completed' [-Wunused-variable]
+ 1001 |                 bool completed = false;
+      |                      ^~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1051:27: error: use of undeclared identifier 'TMP_SFO_PATH'
+ 1051 |                                 ExtractLocalPkg(path, TMP_SFO_PATH, icon_path);
+      |                                                       ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1053:63: error: no matching function for call to 'to_string'
+ 1053 |                                         icon_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/game-icons/" + title_id + ".png";
+      |                                                                                                  ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1322:65: error: use of undeclared identifier 'TMP_SFO_PATH'
+ 1322 |                         ExtractRemotePkg(pkg_data->archive_entry->client_data->path, TMP_SFO_PATH, icon_path);
+      |                                                                                      ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1324:62: error: no matching function for call to 'to_string'
+ 1324 |                                 icon_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/game-icons/" + title_id + ".png";
+      |                                                                                          ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1335:25: warning: unused variable 'pkg_info' [-Wunused-variable]
+ 1335 |                         SceAppInstallPkgInfo pkg_info;
+      |                                              ^~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1434:37: error: use of undeclared identifier 'TMP_SFO_PATH'
+ 1434 |                         ExtractRemotePkg(pkg_data->path, TMP_SFO_PATH, icon_path);
+      |                                                          ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1436:62: error: no matching function for call to 'to_string'
+ 1436 |                                 icon_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/game-icons/" + title_id + ".png";
+      |                                                                                          ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1447:25: warning: unused variable 'pkg_info' [-Wunused-variable]
+ 1447 |                         SceAppInstallPkgInfo pkg_info;
+      |                                              ^~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1539:64: error: no matching function for call to 'to_string'
+ 1539 |                 std::string install_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/install";
+      |                                                                              ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1599:64: error: no matching function for call to 'to_string'
+ 1599 |                 std::string version_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/version";
+      |                                                                              ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1628:17: error: use of undeclared identifier 'SERVER_ELF_PATH'
+ 1628 |                 filefd = open(SERVER_ELF_PATH, O_RDONLY);
+      |                               ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1693:55: error: use of undeclared identifier 'sites'
+ 1693 |         RemoteSettings *tmp_settings = &site_settings[sites[site_idx]];
+      |                                                       ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1693:41: error: use of undeclared identifier 'site_settings'
+ 1693 |         RemoteSettings *tmp_settings = &site_settings[sites[site_idx]];
+      |                                         ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1704:41: error: no member named 'http_server_type' in 'RemoteSettings'
+ 1704 |             if (strcmp(remote_settings->http_server_type, HTTP_SERVER_APACHE) == 0)
+      |                        ~~~~~~~~~~~~~~~  ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1706:46: error: no member named 'http_server_type' in 'RemoteSettings'
+ 1706 |             else if (strcmp(remote_settings->http_server_type, HTTP_SERVER_MS_IIS) == 0)
+      |                             ~~~~~~~~~~~~~~~  ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+11 warnings and 20 errors generated.
+[2/4] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ui_dummy/ui_dummy.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ui_dummy/ui_dummy.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ui_dummy/ui_dummy.cpp.o -c /workspace/ps5-ezremote-server/source/ui_dummy/ui_dummy.cpp
+FAILED: ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ui_dummy/ui_dummy.cpp.o 
+/opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ui_dummy/ui_dummy.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ui_dummy/ui_dummy.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ui_dummy/ui_dummy.cpp.o -c /workspace/ps5-ezremote-server/source/ui_dummy/ui_dummy.cpp
+In file included from /workspace/ps5-ezremote-server/source/ui_dummy/ui_dummy.cpp:3:
+/workspace/ps5-ezremote-server/source/ui_dummy/ime_dialog.h:38:92: error: unknown type name 'SceImeDialogType'
+   38 |   int initImeDialog(const char *Title, const char *initialTextBuffer, int max_text_length, SceImeDialogType type, float posx, float posy);
+      |                                                                                            ^
+/workspace/ps5-ezremote-server/source/ui_dummy/ui_dummy.cpp:25:55: warning: suggest braces around initialization of subobject [-Wmissing-braces]
+   25 | char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {0};
+      |                                                       ^
+      |                                                       {}
+/workspace/ps5-ezremote-server/source/ui_dummy/ui_dummy.cpp:26:58: warning: suggest braces around initialization of subobject [-Wmissing-braces]
+   26 | char lang_identifiers[LANG_STRINGS_NUM][LANG_ID_SIZE] = {0};
+      |                                                          ^
+      |                                                          {}
+2 warnings and 1 error generated.
+[3/4] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/zip_util.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/zip_util.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/zip_util.cpp.o -c /workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp
+FAILED: ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/zip_util.cpp.o 
+/opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/zip_util.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/zip_util.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/zip_util.cpp.o -c /workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp
+In file included from /workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:18:
+/workspace/ps5-ezremote-server/source/ui_dummy/ime_dialog.h:38:92: error: unknown type name 'SceImeDialogType'
+   38 |   int initImeDialog(const char *Title, const char *initialTextBuffer, int max_text_length, SceImeDialogType type, float posx, float posy);
+      |                                                                                            ^
+In file included from /workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:21:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:89:18: warning: variable 'seek' set but not used [-Wunused-but-set-variable]
+   89 |         uint64_t seek = 0;
+      |                  ^
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:219:16: warning: unused variable 'i' [-Wunused-variable]
+  219 |         size_t i, len;
+      |                ^
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:265:13: warning: unused variable 'mode' [-Wunused-variable]
+  265 |         int mode;
+      |             ^~~~
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:287:18: warning: variable 'n' set but not used [-Wunused-but-set-variable]
+  287 |         for (int n = 0;; n++)
+      |                  ^
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:327:5: warning: unused label 'recheck' [-Wunused-label]
+  327 |     recheck:
+      |     ^~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:418:74: error: use of undeclared identifier 'SCE_IME_TYPE_DEFAULT'
+  418 |         Dialog::initImeDialog(lang_strings[STR_PASSWORD], password, 127, SCE_IME_TYPE_DEFAULT, 560, 200);
+      |                                                                          ^
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:534:19: warning: unused variable 'total_size' [-Wunused-variable]
+  534 |         uintmax_t total_size, file_count, error_count;
+      |                   ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:534:31: warning: unused variable 'file_count' [-Wunused-variable]
+  534 |         uintmax_t total_size, file_count, error_count;
+      |                               ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:534:43: warning: unused variable 'error_count' [-Wunused-variable]
+  534 |         uintmax_t total_size, file_count, error_count;
+      |                                           ^~~~~~~~~~~
+9 warnings and 2 errors generated.
+ninja: build stopped: subcommand failed.
+
+make: *** [Makefile:8: build] Error 1

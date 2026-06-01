@@ -95,6 +95,15 @@ namespace Actions
     void Disconnect();
     void SelectAllLocalFiles();
     void SelectAllRemoteFiles();
+
+    struct RemoteInstallJob {
+        std::vector<DirEntry> files;
+        RemoteClient* client;
+        RemoteSettings* settings;
+        bool from_web;
+        int site_idx;
+    };
+
     void *InstallRemotePkgsThread(void *argp);
     void InstallRemotePkgs();
     void *InstallLocalPkgsThread(void *argp);
@@ -117,11 +126,13 @@ namespace Actions
     void MoveRemoteFiles();
     void *CopyRemoteFilesThread(void *argp);
     void CopyRemoteFiles();
-    int DownloadAndInstallPkg(const std::string &filename, pkg_header *header);
+    int DownloadAndInstallPkg(RemoteClient* client, const std::string &filename, pkg_header *header);
     void CreateLocalFile(char *filename);
     void CreateRemoteFile(char *filename);
     void *ExtractArchivePkg(void *argp);
     void *DownloadSplitPkg(void *argp);
+    bool IsServerRestartInProgress();
+    void OpenLocalWebUi();
     void RestartServer();
     void StopServer();
     void GetBackgroundDownloadProgress();

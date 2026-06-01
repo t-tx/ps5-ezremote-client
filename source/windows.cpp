@@ -74,7 +74,7 @@ char remote_filter[32];
 char dialog_editor_text[1024];
 char activity_message[1024];
 int selected_browser = 0;
-int saved_selected_browser;
+int saved_selected_browser = 0;
 bool activity_inprogess = false;
 bool stop_activity = false;
 bool file_transfering = false;
@@ -312,7 +312,7 @@ namespace Windows
         ImGuiStyle *style = &ImGui::GetStyle();
         ImVec4 *colors = style->Colors;
         static char title[256];
-		sprintf(title, "ezRemote %s (v1.2.22)", lang_strings[STR_CONNECTION_SETTINGS]);
+        sprintf(title, "ezRemote %s (v1.2.33)", lang_strings[STR_CONNECTION_SETTINGS]);
         BeginGroupPanel(title, ImVec2(1905, 100));
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
         char id[256];
@@ -521,6 +521,8 @@ namespace Windows
         ImVec4 *colors = style->Colors;
         selected_browser = 0;
         ImVec2 pos;
+        const ImVec4 focused_panel_border_color = ImVec4(0.20f, 0.85f, 0.35f, 1.0f);
+        const ImVec4 selected_panel_border_color = ImVec4(1.0f, 0.72f, 0.16f, 1.0f);
 
         ImGui::Dummy(ImVec2(0, 5));
         BeginGroupPanel(lang_strings[STR_LOCAL], ImVec2(948, 720));
@@ -633,6 +635,11 @@ namespace Windows
             set_focus_to_local = false;
             ImGui::SetWindowFocus();
         }
+        bool local_panel_selected = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
+        if (local_panel_selected)
+        {
+            selected_browser |= LOCAL_BROWSER;
+        }
         ImGuiListClipper clipper;
         clipper.Begin(local_files.size());
         while (clipper.Step())
@@ -736,7 +743,12 @@ namespace Windows
         }
         ImGui::Columns(1);
         ImGui::EndChild();
+        bool local_panel_action_selected = paused && (saved_selected_browser & LOCAL_BROWSER);
+        if (local_panel_action_selected || local_panel_selected)
+            ImGui::PushStyleColor(ImGuiCol_Button, local_panel_action_selected ? selected_panel_border_color : focused_panel_border_color);
         EndGroupPanel();
+        if (local_panel_action_selected || local_panel_selected)
+            ImGui::PopStyleColor();
         ImGui::SameLine();
 
         BeginGroupPanel(lang_strings[STR_REMOTE], ImVec2(948, 720));
@@ -842,6 +854,11 @@ namespace Windows
         {
             set_focus_to_remote = false;
             ImGui::SetWindowFocus();
+        }
+        bool remote_panel_selected = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
+        if (remote_panel_selected)
+        {
+            selected_browser |= REMOTE_BROWSER;
         }
         ImGui::Separator();
         ImGui::Columns(2, "Remote##Columns", true);
@@ -949,7 +966,12 @@ namespace Windows
         }
         ImGui::Columns(1);
         ImGui::EndChild();
+        bool remote_panel_action_selected = paused && (saved_selected_browser & REMOTE_BROWSER);
+        if (remote_panel_action_selected || remote_panel_selected)
+            ImGui::PushStyleColor(ImGuiCol_Button, remote_panel_action_selected ? selected_panel_border_color : focused_panel_border_color);
         EndGroupPanel();
+        if (remote_panel_action_selected || remote_panel_selected)
+            ImGui::PopStyleColor();
 
         if (ImGui::IsKeyPressed(ImGuiKey_C) && !paused)
         {
@@ -990,10 +1012,20 @@ namespace Windows
         ImGui::SameLine();
 
         ImGui::SetCursorPosX(1600);
-        if (ImGui::Button(lang_strings[STR_RESTART_SERVER], ImVec2(130, 0)))
+        bool restart_in_progress = Actions::IsServerRestartInProgress();
+        const char *restart_label = restart_in_progress ? "Restarting...##status_restart_server" : lang_strings[STR_RESTART_SERVER];
+        if (restart_in_progress)
+            ImGui::BeginDisabled();
+        if (ImGui::Button(restart_label, ImVec2(130, 0)))
         {
             Actions::RestartServer();
-            is_server_started = !INSTALLER::EzRemoteServerVersion().empty();
+        }
+        if (restart_in_progress)
+            ImGui::EndDisabled();
+        ImGui::SameLine();
+        if (ImGui::Button("Web UI", ImVec2(90, 0)))
+        {
+            Actions::OpenLocalWebUi();
         }
 
         EndGroupPanel();
@@ -2077,6 +2109,14 @@ namespace Windows
                 ImGui::Separator();
 
                 ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 15);
+                sprintf(id, "Open Web UI (http://localhost:%d)##open_web_ui", http_server_port);
+                if (ImGui::Button(id, ImVec2(835, 0)))
+                {
+                    Actions::OpenLocalWebUi();
+                }
+                ImGui::Separator();
+
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 15);
                 ImGui::Text("%s", lang_strings[STR_COMPRESSED_FILE_PATH]);
                 ImGui::SameLine();
                 field_size = ImGui::CalcTextSize(lang_strings[STR_COMPRESSED_FILE_PATH]);
@@ -2095,8 +2135,14 @@ namespace Windows
                 ImGui::PopStyleVar();
                 ImGui::Separator();
 
-                sprintf(id, "%s##settings", lang_strings[STR_RESTART_SERVER]);
-                if (is_server_started)
+                bool restart_in_progress = Actions::IsServerRestartInProgress();
+                sprintf(id, "%s##settings", restart_in_progress ? "Restarting..." : lang_strings[STR_RESTART_SERVER]);
+                if (restart_in_progress)
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.65f, 0.0f, 1.0f)); // Orange background
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f)); // Black Text
+                }
+                else if (is_server_started)
                 {
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green background
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f)); // Black Text
@@ -2106,19 +2152,26 @@ namespace Windows
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red background
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f)); // White Text
                 }
+                if (restart_in_progress)
+                    ImGui::BeginDisabled();
                 if (ImGui::Button(id, ImVec2(410, 0)))
                 {
                     Actions::RestartServer();
-                    is_server_started = !INSTALLER::EzRemoteServerVersion().empty();
                 }
+                if (restart_in_progress)
+                    ImGui::EndDisabled();
                 ImGui::SameLine();
 
                 sprintf(id, "%s##settings", lang_strings[STR_STOP_SERVER]);
+                if (restart_in_progress)
+                    ImGui::BeginDisabled();
                 if (ImGui::Button(id, ImVec2(410, 0)))
                 {
                     Actions::StopServer();
                     is_server_started = !INSTALLER::EzRemoteServerVersion().empty();
                 }
+                if (restart_in_progress)
+                    ImGui::EndDisabled();
                 ImGui::PopStyleColor(2);
                 ImGui::Separator();
 

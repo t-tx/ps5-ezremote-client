@@ -68,6 +68,7 @@ Other targets:
 
 - **CRITICAL**: Always increase the app version in `source/windows.cpp` `ConnectionPanel()` before building, per `.agents/rules/coding.md`.
 - **CRITICAL**: If any attempt fails (e.g., build failure, runtime crash, logic bug), you MUST update `EXPERIENCE.md` with the failure pattern and its solution once found.
+- **CRITICAL**: Keep persistent user preferences synchronized in this file. When the user states a workflow preference that should apply beyond the current request, update `CLAUDE.md` in the same turn; for example, if the user asks to use `make build` to verify changes, record that verification preference here and follow it going forward.
 - If making a packaged release, also review `APP_VERSION` in the root `CMakeLists.txt` and `EZREMOTE_SERVER_REQUIRED_VERSION` in `source/config.h` when server compatibility changes.
 - Keep `ps5-ezremote-server/CMakeLists.txt` `APP_VERSION` aligned with client compatibility requirements when editing the server payload.
 

@@ -786,7 +786,7 @@ namespace INSTALLER
 		return hash;
 	}
 
-	std::string getRemoteUrl(const std::string path, bool encodeUrl)
+	std::string getRemoteUrl(RemoteSettings* settings, const std::string path, bool encodeUrl)
 	{
 		(void)encodeUrl;
 		std::string direct_url_out;
@@ -795,7 +795,7 @@ namespace INSTALLER
 		if (!direct_url.empty() && IsSafeDirectInstallUrl(direct_url))
 			return direct_url;
 
-		std::string hash = StoreBgInstallHostData(remote_settings, path, direct_url_out);
+		std::string hash = StoreBgInstallHostData(settings, path, direct_url_out);
 		if (hash.empty())
 			return "";
 
@@ -933,7 +933,7 @@ namespace INSTALLER
 		return true;
 	}
 
-	int InstallRemotePkg(const std::string &url, pkg_header *header, std::string title, const std::string &path)
+	int InstallRemotePkg(RemoteClient* client, const std::string &url, pkg_header *header, std::string title, const std::string &path)
 	{
 		if (url.empty())
 			return 0;
@@ -979,7 +979,7 @@ namespace INSTALLER
 
 		std::map<std::string, std::string> sfo_params;
 		if (!path.empty())
-			ReadRemotePkgSfoParams(remoteclient, path, header, sfo_params);
+			ReadRemotePkgSfoParams(client, path, header, sfo_params);
 		LogPkgInstallMetadata("remote", path, url, header, display_title, icon_url, content_id, sfo_params);
 
 		ret = InstallWithDirectPackageInstaller(url, display_title, icon_url, content_id);
@@ -1763,4 +1763,23 @@ namespace INSTALLER
 
         return tmp_client;
 	}
+}
+
+namespace INSTALLER {
+    bool GetPkgSfoInfo(const std::string &path, RemoteClient *client, std::map<std::string, std::string> &sfo_params)
+    {
+        pkg_header header;
+        if (client != nullptr)
+        {
+            if (!client->GetRange(path, &header, sizeof(pkg_header), 0))
+                return false;
+            return ReadRemotePkgSfoParams(client, path, &header, sfo_params);
+        }
+        else
+        {
+            if (FS::Head(path, &header, sizeof(pkg_header)) <= 0)
+                return false;
+            return ReadLocalPkgSfoParams(path, &header, sfo_params);
+        }
+    }
 }

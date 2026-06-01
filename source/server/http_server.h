@@ -12,8 +12,12 @@ extern int http_int_server_port;
 extern char compressed_file_path[];
 extern bool web_server_enabled;
 
+#include "clients/remote_client.h"
+
 namespace HttpServer
 {
+    RemoteClient* GetPooledClient(int site_idx);
+    void ReleasePooledClient(int site_idx, RemoteClient *tmp_client);
     void *ServerThread(void *argp);
     void Start();
     void Stop();

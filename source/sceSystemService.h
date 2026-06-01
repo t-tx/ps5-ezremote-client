@@ -11,6 +11,7 @@ typedef struct {
 extern "C"
 {
     void sceSystemServicePowerTick();
+    int sceSystemServiceLaunchWebBrowser(const char *uri);
 }
     
 #endif

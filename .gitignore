@@ -19,3 +19,8 @@ ps5upload/
 *.o
 *.py
 test_*
+*.zip
+frontend/node_modules/
+frontend/dist/
+node-v22.14.0-linux-x64/
+node-v20.12.2-linux-x64/

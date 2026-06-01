@@ -1,0 +1,1949 @@
+cmake -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=/opt/ps5-payload-sdk/toolchain/prospero.cmake
+-- Configuring done (0.0s)
+-- Generating done (0.4s)
+-- Build files have been written to: /workspace/build
+cmake --build build
+Change Dir: '/workspace/build'
+
+Run Build Command(s): /usr/bin/ninja -v
+[1/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ui_dummy/ui_dummy.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ui_dummy/ui_dummy.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ui_dummy/ui_dummy.cpp.o -c /workspace/ps5-ezremote-server/source/ui_dummy/ui_dummy.cpp
+/workspace/ps5-ezremote-server/source/ui_dummy/ui_dummy.cpp:25:55: warning: suggest braces around initialization of subobject [-Wmissing-braces]
+   25 | char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {0};
+      |                                                       ^
+      |                                                       {}
+/workspace/ps5-ezremote-server/source/ui_dummy/ui_dummy.cpp:26:58: warning: suggest braces around initialization of subobject [-Wmissing-braces]
+   26 | char lang_identifiers[LANG_STRINGS_NUM][LANG_ID_SIZE] = {0};
+      |                                                          ^
+      |                                                          {}
+In file included from /workspace/ps5-ezremote-server/source/ui_dummy/ui_dummy.cpp:2:
+In file included from /workspace/ps5-ezremote-server/source/ui_dummy/lang.h:4:
+In file included from /workspace/ps5-ezremote-server/source/config.h:12:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+6 warnings generated.
+[2/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/main.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/main.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/main.cpp.o -c /workspace/ps5-ezremote-server/source/main.cpp
+In file included from /workspace/ps5-ezremote-server/source/main.cpp:13:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+In file included from /workspace/ps5-ezremote-server/source/main.cpp:12:
+In file included from /workspace/ps5-ezremote-server/source/config.h:12:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/main.cpp:13:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:180:17: warning: unused function 'SetupPreviousFolder' [-Wunused-function]
+  180 |     static void SetupPreviousFolder(const std::string &path, DirEntry *entry)
+      |                 ^~~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+18 warnings generated.
+[3/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/server/legacy_dpi_server.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/server/legacy_dpi_server.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/server/legacy_dpi_server.cpp.o -c /workspace/ps5-ezremote-server/source/server/legacy_dpi_server.cpp
+In file included from /workspace/ps5-ezremote-server/source/server/legacy_dpi_server.cpp:3:
+/workspace/ps5-ezremote-server/source/server/../util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+In file included from /workspace/ps5-ezremote-server/source/server/legacy_dpi_server.cpp:3:
+In file included from /workspace/ps5-ezremote-server/source/server/../util.h:13:
+In file included from /workspace/ps5-ezremote-server/source/server/../config.h:12:
+In file included from /workspace/ps5-ezremote-server/source/server/../clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/server/legacy_dpi_server.cpp:3:
+/workspace/ps5-ezremote-server/source/server/../util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/server/../util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/server/../util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/server/../util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/server/../util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/server/../util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/server/../util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/server/../util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/server/../util.h:180:17: warning: unused function 'SetupPreviousFolder' [-Wunused-function]
+  180 |     static void SetupPreviousFolder(const std::string &path, DirEntry *entry)
+      |                 ^~~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/server/../util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/server/../util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/server/../util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+17 warnings generated.
+[4/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/zip_util.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/zip_util.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/zip_util.cpp.o -c /workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp
+In file included from /workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:21:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:89:18: warning: variable 'seek' set but not used [-Wunused-but-set-variable]
+   89 |         uint64_t seek = 0;
+      |                  ^
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:219:16: warning: unused variable 'i' [-Wunused-variable]
+  219 |         size_t i, len;
+      |                ^
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:265:13: warning: unused variable 'mode' [-Wunused-variable]
+  265 |         int mode;
+      |             ^~~~
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:287:18: warning: variable 'n' set but not used [-Wunused-but-set-variable]
+  287 |         for (int n = 0;; n++)
+      |                  ^
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:327:5: warning: unused label 'recheck' [-Wunused-label]
+  327 |     recheck:
+      |     ^~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:534:19: warning: unused variable 'total_size' [-Wunused-variable]
+  534 |         uintmax_t total_size, file_count, error_count;
+      |                   ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:534:31: warning: unused variable 'file_count' [-Wunused-variable]
+  534 |         uintmax_t total_size, file_count, error_count;
+      |                               ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:534:43: warning: unused variable 'error_count' [-Wunused-variable]
+  534 |         uintmax_t total_size, file_count, error_count;
+      |                                           ^~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:14:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/wrapper/zip_util.cpp:21:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:180:17: warning: unused function 'SetupPreviousFolder' [-Wunused-function]
+  180 |     static void SetupPreviousFolder(const std::string &path, DirEntry *entry)
+      |                 ^~~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+24 warnings generated.
+[5/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/nfsclient.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/nfsclient.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/nfsclient.cpp.o -c /workspace/ps5-ezremote-server/source/clients/nfsclient.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/nfsclient.cpp:18:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+In file included from /workspace/ps5-ezremote-server/source/clients/nfsclient.cpp:13:
+In file included from /workspace/ps5-ezremote-server/source/clients/nfsclient.h:12:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/nfsclient.cpp:18:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+16 warnings generated.
+[6/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/sftpclient.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/sftpclient.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/sftpclient.cpp.o -c /workspace/ps5-ezremote-server/source/clients/sftpclient.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/sftpclient.cpp:12:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/clients/sftpclient.cpp:68:13: warning: variable 'retval' set but not used [-Wunused-but-set-variable]
+   68 |     int32_t retval;
+      |             ^
+/workspace/ps5-ezremote-server/source/clients/sftpclient.cpp:114:17: warning: variable 'fingerprint' set but not used [-Wunused-but-set-variable]
+  114 |     const char *fingerprint = nullptr;
+      |                 ^
+/workspace/ps5-ezremote-server/source/clients/sftpclient.cpp:317:13: warning: unused variable 'count' [-Wunused-variable]
+  317 |     int rc, count = 0;
+      |             ^~~~~
+/workspace/ps5-ezremote-server/source/clients/sftpclient.cpp:356:13: warning: unused variable 'count' [-Wunused-variable]
+  356 |     int rc, count = 0;
+      |             ^~~~~
+/workspace/ps5-ezremote-server/source/clients/sftpclient.cpp:405:13: warning: unused variable 'count' [-Wunused-variable]
+  405 |     int rc, count = 0;
+      |             ^~~~~
+/workspace/ps5-ezremote-server/source/clients/sftpclient.cpp:521:16: warning: unused variable 'count' [-Wunused-variable]
+  521 |     int nread, count = 0;
+      |                ^~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/sftpclient.cpp:7:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/sftpclient.cpp:12:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+22 warnings generated.
+[7/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/smbclient.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/smbclient.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/smbclient.cpp.o -c /workspace/ps5-ezremote-server/source/clients/smbclient.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/smbclient.cpp:17:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+In file included from /workspace/ps5-ezremote-server/source/clients/smbclient.cpp:14:
+In file included from /workspace/ps5-ezremote-server/source/ui_dummy/lang.h:4:
+In file included from /workspace/ps5-ezremote-server/source/config.h:12:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/smbclient.cpp:17:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+16 warnings generated.
+[8/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/ftpclient.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/ftpclient.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/ftpclient.cpp.o -c /workspace/ps5-ezremote-server/source/clients/ftpclient.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:17:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:334:1: warning: non-void function does not return a value in all control paths [-Wreturn-type]
+  334 | }
+      | ^
+/workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:547:29: warning: format specifies type 'long long' but the argument has type 'int64_t' (aka 'long') [-Wformat]
+  547 |                 sprintf(buf, "REST %lld", mp_ftphandle->offset);
+      |                                    ~~~~   ^~~~~~~~~~~~~~~~~~~~
+      |                                    %ld
+/workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:739:29: warning: format specifies type 'long long' but the argument has type 'int64_t' (aka 'long') [-Wformat]
+  739 |                 sprintf(buf, "REST %lld", mp_ftphandle->offset);
+      |                                    ~~~~   ^~~~~~~~~~~~~~~~~~~~
+      |                                    %ld
+/workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:902:9: warning: unused variable 'c' [-Wunused-variable]
+  902 |         int l, c;
+      |                ^
+/workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:1740:41: warning: format specifies type 'int *' but the argument has type 'uint16_t *' (aka 'unsigned short *') [-Wformat]
+ 1740 |                                 sscanf(value, "%4d%2d%2d%2d%2d%2d", &dirEntry->modified.year, &dirEntry->modified.month, &dirEntry->modified.day,
+      |                                                ~~~                  ^~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                %4hd
+/workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:1740:67: warning: format specifies type 'int *' but the argument has type 'uint8_t *' (aka 'unsigned char *') [-Wformat]
+ 1740 |                                 sscanf(value, "%4d%2d%2d%2d%2d%2d", &dirEntry->modified.year, &dirEntry->modified.month, &dirEntry->modified.day,
+      |                                                   ~~~                                         ^~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                   %2s
+/workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:1740:94: warning: format specifies type 'int *' but the argument has type 'uint8_t *' (aka 'unsigned char *') [-Wformat]
+ 1740 |                                 sscanf(value, "%4d%2d%2d%2d%2d%2d", &dirEntry->modified.year, &dirEntry->modified.month, &dirEntry->modified.day,
+      |                                                      ~~~                                                                 ^~~~~~~~~~~~~~~~~~~~~~~
+      |                                                      %2s
+/workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:1741:9: warning: format specifies type 'int *' but the argument has type 'uint8_t *' (aka 'unsigned char *') [-Wformat]
+ 1740 |                                 sscanf(value, "%4d%2d%2d%2d%2d%2d", &dirEntry->modified.year, &dirEntry->modified.month, &dirEntry->modified.day,
+      |                                                         ~~~
+      |                                                         %2s
+ 1741 |                                            &dirEntry->modified.hours, &dirEntry->modified.minutes, &dirEntry->modified.seconds);
+      |                                            ^~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:1741:36: warning: format specifies type 'int *' but the argument has type 'uint8_t *' (aka 'unsigned char *') [-Wformat]
+ 1740 |                                 sscanf(value, "%4d%2d%2d%2d%2d%2d", &dirEntry->modified.year, &dirEntry->modified.month, &dirEntry->modified.day,
+      |                                                            ~~~
+      |                                                            %2s
+ 1741 |                                            &dirEntry->modified.hours, &dirEntry->modified.minutes, &dirEntry->modified.seconds);
+      |                                                                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:1741:65: warning: format specifies type 'int *' but the argument has type 'uint8_t *' (aka 'unsigned char *') [-Wformat]
+ 1740 |                                 sscanf(value, "%4d%2d%2d%2d%2d%2d", &dirEntry->modified.year, &dirEntry->modified.month, &dirEntry->modified.day,
+      |                                                               ~~~
+      |                                                               %2s
+ 1741 |                                            &dirEntry->modified.hours, &dirEntry->modified.minutes, &dirEntry->modified.seconds);
+      |                                                                                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:15:
+In file included from /workspace/ps5-ezremote-server/source/ui_dummy/lang.h:4:
+In file included from /workspace/ps5-ezremote-server/source/config.h:12:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:17:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/ftpclient.cpp:16:
+/workspace/ps5-ezremote-server/source/clients/ftpclient.h:113:7: warning: private field 'server' is not used [-Wunused-private-field]
+  113 |         char server[128];
+      |              ^
+/workspace/ps5-ezremote-server/source/clients/ftpclient.h:114:6: warning: private field 'server_port' is not used [-Wunused-private-field]
+  114 |         int server_port;
+      |             ^
+29 warnings generated.
+[9/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o -c /workspace/ps5-ezremote-server/source/wrapper/installer.cpp
+FAILED: ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o 
+/opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/wrapper/installer.cpp.o -c /workspace/ps5-ezremote-server/source/wrapper/installer.cpp
+In file included from /workspace/ps5-ezremote-server/source/wrapper/installer.cpp:11:
+/workspace/ps5-ezremote-server/source/clients/webdav.h:21:9: warning: 'WebDAVClient::Size' hides overloaded virtual function [-Woverloaded-virtual]
+   21 |     int Size(const std::string &path, int64_t *size);
+      |         ^
+/workspace/ps5-ezremote-server/source/clients/baseclient.h:19:9: note: hidden overloaded virtual function 'BaseClient::Size' declared here: type mismatch at 2nd parameter ('uint64_t *' (aka 'unsigned long *') vs 'int64_t *' (aka 'long *'))
+   19 |     int Size(const std::string &path, uint64_t *size);
+      |         ^
+In file included from /workspace/ps5-ezremote-server/source/wrapper/installer.cpp:29:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:722:9: warning: unused variable 'icon0_png_data' [-Wunused-variable]
+  722 |                 void *icon0_png_data = NULL;
+      |                       ^~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:723:12: warning: unused variable 'icon0_png_offset' [-Wunused-variable]
+  723 |                 uint32_t icon0_png_offset = 0;
+      |                          ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:724:12: warning: unused variable 'icon0_png_size' [-Wunused-variable]
+  724 |                 uint32_t icon0_png_size = 0;
+      |                          ^~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:785:78: error: no matching function for call to 'to_string'
+  785 |                 std::string store_bg_install_data_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/store_bg_install_data";
+      |                                                                                            ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:823:74: error: no matching function for call to 'to_string'
+  823 |                                 std::string full_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/bg_redirect/" + hash;
+      |                                                                                                      ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:828:72: error: no matching function for call to 'to_string'
+  828 |                 std::string full_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/bg_install/" + hash;
+      |                                                                                      ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:879:8: warning: unused variable 'completed' [-Wunused-variable]
+  879 |                 bool completed = false;
+      |                      ^~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:884:24: warning: unused variable 'pkg_info' [-Wunused-variable]
+  884 |                 SceAppInstallPkgInfo pkg_info;
+      |                                      ^~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:974:31: error: use of undeclared identifier 'TMP_SFO_PATH'
+  974 |                         if (ExtractRemotePkg(path, TMP_SFO_PATH, icon_path)) {
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:976:63: error: no matching function for call to 'to_string'
+  976 |                                         icon_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/game-icons/" + title_id + ".png";
+      |                                                                                                  ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:999:7: warning: unused variable 'ret' [-Wunused-variable]
+  999 |                 int ret;
+      |                     ^~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1001:8: warning: unused variable 'completed' [-Wunused-variable]
+ 1001 |                 bool completed = false;
+      |                      ^~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1051:27: error: use of undeclared identifier 'TMP_SFO_PATH'
+ 1051 |                                 ExtractLocalPkg(path, TMP_SFO_PATH, icon_path);
+      |                                                       ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1053:63: error: no matching function for call to 'to_string'
+ 1053 |                                         icon_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/game-icons/" + title_id + ".png";
+      |                                                                                                  ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1322:65: error: use of undeclared identifier 'TMP_SFO_PATH'
+ 1322 |                         ExtractRemotePkg(pkg_data->archive_entry->client_data->path, TMP_SFO_PATH, icon_path);
+      |                                                                                      ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1324:62: error: no matching function for call to 'to_string'
+ 1324 |                                 icon_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/game-icons/" + title_id + ".png";
+      |                                                                                          ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1335:25: warning: unused variable 'pkg_info' [-Wunused-variable]
+ 1335 |                         SceAppInstallPkgInfo pkg_info;
+      |                                              ^~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1434:37: error: use of undeclared identifier 'TMP_SFO_PATH'
+ 1434 |                         ExtractRemotePkg(pkg_data->path, TMP_SFO_PATH, icon_path);
+      |                                                          ^
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1436:62: error: no matching function for call to 'to_string'
+ 1436 |                                 icon_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/game-icons/" + title_id + ".png";
+      |                                                                                          ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1447:25: warning: unused variable 'pkg_info' [-Wunused-variable]
+ 1447 |                         SceAppInstallPkgInfo pkg_info;
+      |                                              ^~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1539:64: error: no matching function for call to 'to_string'
+ 1539 |                 std::string install_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/install";
+      |                                                                              ^~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4009:34: note: candidate function not viable: no known conversion from 'char[64]' to 'int' for 1st argument
+ 4009 | _LIBCPP_EXPORTED_FROM_ABI string to_string(int __val);
+      |                                  ^         ~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4010:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned int' for 1st argument
+ 4010 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned __val);
+      |                                  ^         ~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4011:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long' for 1st argument
+ 4011 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long __val);
+      |                                  ^         ~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4012:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long' for 1st argument
+ 4012 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4013:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long long' for 1st argument
+ 4013 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4014:34: note: candidate function not viable: no known conversion from 'char[64]' to 'unsigned long long' for 1st argument
+ 4014 | _LIBCPP_EXPORTED_FROM_ABI string to_string(unsigned long long __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4015:34: note: candidate function not viable: no known conversion from 'char[64]' to 'float' for 1st argument
+ 4015 | _LIBCPP_EXPORTED_FROM_ABI string to_string(float __val);
+      |                                  ^         ~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4016:34: note: candidate function not viable: no known conversion from 'char[64]' to 'double' for 1st argument
+ 4016 | _LIBCPP_EXPORTED_FROM_ABI string to_string(double __val);
+      |                                  ^         ~~~~~~~~~~~~
+/opt/ps5-payload-sdk/target/include/c++/v1/string:4017:34: note: candidate function not viable: no known conversion from 'char[64]' to 'long double' for 1st argument
+ 4017 | _LIBCPP_EXPORTED_FROM_ABI string to_string(long double __val);
+      |                                  ^         ~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1616:13: warning: unused variable 'server_addr' [-Wunused-variable]
+ 1616 |                 in_addr_t server_addr;
+      |                           ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/wrapper/installer.cpp:1619:11: warning: unused variable 'i' [-Wunused-variable]
+ 1619 |                 ssize_t i;
+      |                         ^
+13 warnings and 12 errors generated.
+[10/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ps5_api/fs.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ps5_api/fs.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/ps5_api/fs.cpp.o -c /workspace/ps5-ezremote-server/source/ps5_api/fs.cpp
+In file included from /workspace/ps5-ezremote-server/source/ps5_api/fs.cpp:14:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/ps5_api/fs.cpp:43:17: warning: unused variable 'err' [-Wunused-variable]
+   43 |             int err = mkdir(path.c_str(), 0777);
+      |                 ^~~
+/workspace/ps5-ezremote-server/source/ps5_api/fs.cpp:94:13: warning: unused variable 'res' [-Wunused-variable]
+   94 |         int res = rename(from.c_str(), to.c_str());
+      |             ^~~
+/workspace/ps5-ezremote-server/source/ps5_api/fs.cpp:142:13: warning: unused variable 'err' [-Wunused-variable]
+  142 |         int err = fclose(fd);
+      |             ^~~
+In file included from /workspace/ps5-ezremote-server/source/ps5_api/fs.cpp:14:
+In file included from /workspace/ps5-ezremote-server/source/util.h:13:
+In file included from /workspace/ps5-ezremote-server/source/config.h:12:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/ps5_api/fs.cpp:14:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:180:17: warning: unused function 'SetupPreviousFolder' [-Wunused-function]
+  180 |     static void SetupPreviousFolder(const std::string &path, DirEntry *entry)
+      |                 ^~~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+21 warnings generated.
+[11/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/npxserve.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/npxserve.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/npxserve.cpp.o -c /workspace/ps5-ezremote-server/source/clients/npxserve.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/npxserve.cpp:8:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+In file included from /workspace/ps5-ezremote-server/source/clients/npxserve.cpp:4:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/npxserve.cpp:8:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+18 warnings generated.
+[12/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/config.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/config.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/config.cpp.o -c /workspace/ps5-ezremote-server/source/config.cpp
+In file included from /workspace/ps5-ezremote-server/source/config.cpp:17:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/config.cpp:66:40: warning: variable length arrays in C++ are a Clang extension [-Wvla-cxx-extension]
+   66 |         unsigned char tmp_encrypt_text[text.length() * 2];
+      |                                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/config.cpp:66:40: note: function parameter 'text' with unknown value cannot be used in a constant expression
+/workspace/ps5-ezremote-server/source/config.cpp:64:36: note: declared here
+   64 |     int Encrypt(const std::string &text, std::string &encrypt_text)
+      |                                    ^
+/workspace/ps5-ezremote-server/source/config.cpp:82:40: warning: variable length arrays in C++ are a Clang extension [-Wvla-cxx-extension]
+   82 |         unsigned char tmp_decrypt_text[tmp_decode_text.length() * 2];
+      |                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/config.cpp:82:56: note: non-constexpr function 'length' cannot be used in a constant expression
+   82 |         unsigned char tmp_decrypt_text[tmp_decode_text.length() * 2];
+      |                                                        ^
+/opt/ps5-payload-sdk/target/include/c++/v1/string:1179:65: note: declared here
+ 1179 |   _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX20 size_type length() const _NOEXCEPT { return size(); }
+      |                                                                 ^
+In file included from /workspace/ps5-ezremote-server/source/config.cpp:13:
+In file included from /workspace/ps5-ezremote-server/source/config.h:12:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/config.cpp:17:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:180:17: warning: unused function 'SetupPreviousFolder' [-Wunused-function]
+  180 |     static void SetupPreviousFolder(const std::string &path, DirEntry *entry)
+      |                 ^~~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+20 warnings generated.
+[13/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/alldebrid.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/alldebrid.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/alldebrid.cpp.o -c /workspace/ps5-ezremote-server/source/filehost/alldebrid.cpp
+In file included from /workspace/ps5-ezremote-server/source/filehost/alldebrid.cpp:4:
+In file included from /workspace/ps5-ezremote-server/source/config.h:12:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+4 warnings generated.
+[14/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/iis.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/iis.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/iis.cpp.o -c /workspace/ps5-ezremote-server/source/clients/iis.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/iis.cpp:8:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/clients/iis.cpp:26:29: warning: unused variable 'attr' [-Wunused-variable]
+   26 |             lxb_dom_attr_t *attr;
+      |                             ^~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/iis.cpp:4:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/iis.cpp:8:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+17 warnings generated.
+[15/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/apache.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/apache.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/apache.cpp.o -c /workspace/ps5-ezremote-server/source/clients/apache.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/apache.cpp:8:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/clients/apache.cpp:41:29: warning: unused variable 'attr' [-Wunused-variable]
+   41 |             lxb_dom_attr_t *attr;
+      |                             ^~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/apache.cpp:4:
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/apache.cpp:8:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:180:17: warning: unused function 'SetupPreviousFolder' [-Wunused-function]
+  180 |     static void SetupPreviousFolder(const std::string &path, DirEntry *entry)
+      |                 ^~~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+16 warnings generated.
+[16/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/rclone.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/rclone.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/rclone.cpp.o -c /workspace/ps5-ezremote-server/source/clients/rclone.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/rclone.cpp:8:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/clients/rclone.cpp:26:29: warning: unused variable 'attr' [-Wunused-variable]
+   26 |             lxb_dom_attr_t *attr;
+      |                             ^~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/rclone.cpp:4:
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/rclone.cpp:8:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+16 warnings generated.
+[17/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/realdebrid.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/realdebrid.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/realdebrid.cpp.o -c /workspace/ps5-ezremote-server/source/filehost/realdebrid.cpp
+In file included from /workspace/ps5-ezremote-server/source/filehost/realdebrid.cpp:4:
+In file included from /workspace/ps5-ezremote-server/source/config.h:12:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+4 warnings generated.
+[18/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/myrient.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/myrient.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/myrient.cpp.o -c /workspace/ps5-ezremote-server/source/clients/myrient.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/myrient.cpp:10:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/clients/myrient.cpp:29:25: warning: unused variable 'attr' [-Wunused-variable]
+   29 |         lxb_dom_attr_t *attr;
+      |                         ^~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/myrient.cpp:6:
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/myrient.cpp:10:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+14 warnings generated.
+[19/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/nginx.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/nginx.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/nginx.cpp.o -c /workspace/ps5-ezremote-server/source/clients/nginx.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/nginx.cpp:10:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/clients/nginx.cpp:33:29: warning: unused variable 'attr' [-Wunused-variable]
+   33 |             lxb_dom_attr_t *attr;
+      |                             ^~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/nginx.cpp:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/nginx.cpp:10:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+17 warnings generated.
+[20/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/archiveorg.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/archiveorg.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/archiveorg.cpp.o -c /workspace/ps5-ezremote-server/source/clients/archiveorg.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/archiveorg.cpp:11:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/clients/archiveorg.cpp:102:25: warning: unused variable 'attr' [-Wunused-variable]
+  102 |         lxb_dom_attr_t *attr;
+      |                         ^~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/archiveorg.cpp:6:
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/archiveorg.cpp:11:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+14 warnings generated.
+[21/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/baseclient.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/baseclient.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/baseclient.cpp.o -c /workspace/ps5-ezremote-server/source/clients/baseclient.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/baseclient.cpp:10:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+In file included from /workspace/ps5-ezremote-server/source/clients/baseclient.cpp:5:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/baseclient.cpp:10:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+16 warnings generated.
+[22/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/github.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/github.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/github.cpp.o -c /workspace/ps5-ezremote-server/source/clients/github.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/github.cpp:11:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+In file included from /workspace/ps5-ezremote-server/source/clients/github.cpp:5:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/github.cpp:11:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+16 warnings generated.
+[23/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/filehost.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/filehost.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/filehost.cpp.o -c /workspace/ps5-ezremote-server/source/filehost/filehost.cpp
+In file included from /workspace/ps5-ezremote-server/source/filehost/filehost.cpp:15:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+In file included from /workspace/ps5-ezremote-server/source/filehost/filehost.cpp:14:
+In file included from /workspace/ps5-ezremote-server/source/config.h:12:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/filehost/filehost.cpp:15:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:173:21: warning: unused function 'GetTick' [-Wunused-function]
+  173 |     static uint64_t GetTick()
+      |                     ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:180:17: warning: unused function 'SetupPreviousFolder' [-Wunused-function]
+  180 |     static void SetupPreviousFolder(const std::string &path, DirEntry *entry)
+      |                 ^~~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+19 warnings generated.
+[24/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/mediafire.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/mediafire.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/mediafire.cpp.o -c /workspace/ps5-ezremote-server/source/filehost/mediafire.cpp
+/workspace/ps5-ezremote-server/source/filehost/mediafire.cpp:41:29: warning: unused variable 'attr' [-Wunused-variable]
+   41 |             lxb_dom_attr_t *attr;
+      |                             ^~~~
+In file included from /workspace/ps5-ezremote-server/source/filehost/mediafire.cpp:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+5 warnings generated.
+[25/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/gdrive.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/gdrive.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/gdrive.cpp.o -c /workspace/ps5-ezremote-server/source/filehost/gdrive.cpp
+/workspace/ps5-ezremote-server/source/filehost/gdrive.cpp:57:29: warning: unused variable 'attr' [-Wunused-variable]
+   57 |             lxb_dom_attr_t *attr;
+      |                             ^~~~
+In file included from /workspace/ps5-ezremote-server/source/filehost/gdrive.cpp:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+5 warnings generated.
+[26/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/1fichier.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/1fichier.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/filehost/1fichier.cpp.o -c /workspace/ps5-ezremote-server/source/filehost/1fichier.cpp
+/workspace/ps5-ezremote-server/source/filehost/1fichier.cpp:39:29: warning: unused variable 'node' [-Wunused-variable]
+   39 |             lxb_dom_node_t *node;
+      |                             ^~~~
+/workspace/ps5-ezremote-server/source/filehost/1fichier.cpp:42:29: warning: unused variable 'attr' [-Wunused-variable]
+   42 |             lxb_dom_attr_t *attr;
+      |                             ^~~~
+In file included from /workspace/ps5-ezremote-server/source/filehost/1fichier.cpp:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+6 warnings generated.
+[27/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/webdav.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/webdav.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/clients/webdav.cpp.o -c /workspace/ps5-ezremote-server/source/clients/webdav.cpp
+In file included from /workspace/ps5-ezremote-server/source/clients/webdav.cpp:6:
+/workspace/ps5-ezremote-server/source/clients/webdav.h:21:9: warning: 'WebDAVClient::Size' hides overloaded virtual function [-Woverloaded-virtual]
+   21 |     int Size(const std::string &path, int64_t *size);
+      |         ^
+/workspace/ps5-ezremote-server/source/clients/baseclient.h:19:9: note: hidden overloaded virtual function 'BaseClient::Size' declared here: type mismatch at 2nd parameter ('uint64_t *' (aka 'unsigned long *') vs 'int64_t *' (aka 'long *'))
+   19 |     int Size(const std::string &path, uint64_t *size);
+      |         ^
+In file included from /workspace/ps5-ezremote-server/source/clients/webdav.cpp:10:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+/workspace/ps5-ezremote-server/source/clients/webdav.cpp:153:53: warning: format specifies type 'int *' but the argument has type 'uint8_t *' (aka 'unsigned char *') [-Wformat]
+  153 |                 sscanf(p_char, "%d %s %d %d:%d:%d", &entry.modified.day, month, &entry.modified.year, &entry.modified.hours, &entry.modified.minutes, &entry.modified.seconds);
+      |                                 ~~                  ^~~~~~~~~~~~~~~~~~~
+      |                                 %s
+/workspace/ps5-ezremote-server/source/clients/webdav.cpp:153:81: warning: format specifies type 'int *' but the argument has type 'uint16_t *' (aka 'unsigned short *') [-Wformat]
+  153 |                 sscanf(p_char, "%d %s %d %d:%d:%d", &entry.modified.day, month, &entry.modified.year, &entry.modified.hours, &entry.modified.minutes, &entry.modified.seconds);
+      |                                       ~~                                        ^~~~~~~~~~~~~~~~~~~~
+      |                                       %hd
+/workspace/ps5-ezremote-server/source/clients/webdav.cpp:153:103: warning: format specifies type 'int *' but the argument has type 'uint8_t *' (aka 'unsigned char *') [-Wformat]
+  153 |                 sscanf(p_char, "%d %s %d %d:%d:%d", &entry.modified.day, month, &entry.modified.year, &entry.modified.hours, &entry.modified.minutes, &entry.modified.seconds);
+      |                                          ~~                                                           ^~~~~~~~~~~~~~~~~~~~~
+      |                                          %s
+/workspace/ps5-ezremote-server/source/clients/webdav.cpp:153:126: warning: format specifies type 'int *' but the argument has type 'uint8_t *' (aka 'unsigned char *') [-Wformat]
+  153 |                 sscanf(p_char, "%d %s %d %d:%d:%d", &entry.modified.day, month, &entry.modified.year, &entry.modified.hours, &entry.modified.minutes, &entry.modified.seconds);
+      |                                             ~~                                                                               ^~~~~~~~~~~~~~~~~~~~~~~
+      |                                             %s
+/workspace/ps5-ezremote-server/source/clients/webdav.cpp:153:151: warning: format specifies type 'int *' but the argument has type 'uint8_t *' (aka 'unsigned char *') [-Wformat]
+  153 |                 sscanf(p_char, "%d %s %d %d:%d:%d", &entry.modified.day, month, &entry.modified.year, &entry.modified.hours, &entry.modified.minutes, &entry.modified.seconds);
+      |                                                ~~                                                                                                     ^~~~~~~~~~~~~~~~~~~~~~~
+      |                                                %s
+/workspace/ps5-ezremote-server/source/clients/webdav.cpp:177:12: warning: unused variable 'bytes_remaining' [-Wunused-variable]
+  177 |     size_t bytes_remaining = FS::GetSize(inputfile);
+      |            ^~~~~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/webdav.cpp:4:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/clients/webdav.cpp:10:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:198:17: warning: unused function 'Notify' [-Wunused-function]
+  198 |     static void Notify(const char *fmt, ...)
+      |                 ^~~~~~
+/workspace/ps5-ezremote-server/source/util.h:254:17: warning: unused function 'RichNotify' [-Wunused-function]
+  254 |     static bool RichNotify(uint64_t id, const char *fmt, ...)
+      |                 ^~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+23 warnings generated.
+[28/29] /opt/ps5-payload-sdk/toolchain/../bin/prospero-clang++ --sysroot=/opt/ps5-payload-sdk/toolchain/../target -DCPPHTTPLIB_THREAD_POOL_COUNT=64 -DEZREMOTE_VERSION=1.04 -I/workspace/ps5-ezremote-server/source -I/workspace/ps5-ezremote-server/source/ps5_api -I/workspace/ps5-ezremote-server/source/wrapper -I/workspace/ps5-ezremote-server/source/pugixml -I/workspace/ps5-ezremote-server/source/ui_dummy -DDONT_HAVE_STRUPR -fstack-protector-all -O0 -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -fstack-protector-all -gdwarf-2 -O0 -pedantic -pedantic-errors -fPIE -MD -MT ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/server/http_server.cpp.o -MF ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/server/http_server.cpp.o.d -o ps5-ezremote-server/CMakeFiles/ezremote-server.elf.dir/source/server/http_server.cpp.o -c /workspace/ps5-ezremote-server/source/server/http_server.cpp
+In file included from /workspace/ps5-ezremote-server/source/server/http_server.cpp:28:
+/workspace/ps5-ezremote-server/source/clients/webdav.h:21:9: warning: 'WebDAVClient::Size' hides overloaded virtual function [-Woverloaded-virtual]
+   21 |     int Size(const std::string &path, int64_t *size);
+      |         ^
+/workspace/ps5-ezremote-server/source/clients/baseclient.h:19:9: note: hidden overloaded virtual function 'BaseClient::Size' declared here: type mismatch at 2nd parameter ('uint64_t *' (aka 'unsigned long *') vs 'int64_t *' (aka 'long *'))
+   19 |     int Size(const std::string &path, uint64_t *size);
+      |         ^
+In file included from /workspace/ps5-ezremote-server/source/server/http_server.cpp:31:
+/workspace/ps5-ezremote-server/source/util.h:162:9: warning: 'MD5' is deprecated [-Wdeprecated-declarations]
+  162 |         MD5((const unsigned char *)text.c_str(), text.length(), res.data());
+      |         ^
+/opt/ps5-payload-sdk/target/include_common/openssl/md5.h:52:1: note: 'MD5' has been explicitly marked deprecated here
+   52 | OSSL_DEPRECATEDIN_3_0 unsigned char *MD5(const unsigned char *d, size_t n,
+      | ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:217:49: note: expanded from macro 'OSSL_DEPRECATEDIN_3_0'
+  217 | #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
+      |                                                 ^
+/opt/ps5-payload-sdk/target/include_common/openssl/macros.h:62:52: note: expanded from macro 'OSSL_DEPRECATED'
+   62 | #     define OSSL_DEPRECATED(since) __attribute__((deprecated))
+      |                                                    ^
+In file included from /workspace/ps5-ezremote-server/source/server/http_server.cpp:21:
+In file included from /workspace/ps5-ezremote-server/source/clients/remote_client.h:6:
+/workspace/ps5-ezremote-server/source/common.h:100:24: warning: unused function 'NextChildElement' [-Wunused-function]
+  100 | static lxb_dom_node_t *NextChildElement(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:110:24: warning: unused function 'NextElement' [-Wunused-function]
+  110 | static lxb_dom_node_t *NextElement(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:120:24: warning: unused function 'NextChildTextNode' [-Wunused-function]
+  120 | static lxb_dom_node_t *NextChildTextNode(lxb_dom_element_t *element)
+      |                        ^~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/common.h:130:24: warning: unused function 'NextTextNode' [-Wunused-function]
+  130 | static lxb_dom_node_t *NextTextNode(lxb_dom_node_t *node)
+      |                        ^~~~~~~~~~~~
+In file included from /workspace/ps5-ezremote-server/source/server/http_server.cpp:31:
+/workspace/ps5-ezremote-server/source/util.h:32:17: warning: unused function 'utf16_to_utf8' [-Wunused-function]
+   32 |     static void utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:65:17: warning: unused function 'utf8_to_utf16' [-Wunused-function]
+   65 |     static void utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+      |                 ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:103:25: warning: unused function 'Trim' [-Wunused-function]
+  103 |     static std::string &Trim(std::string &str, std::string chars)
+      |                         ^~~~
+/workspace/ps5-ezremote-server/source/util.h:118:24: warning: unused function 'ToLower' [-Wunused-function]
+  118 |     static std::string ToLower(std::string s)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:126:17: warning: unused function 'EndsWith' [-Wunused-function]
+  126 |     static bool EndsWith(std::string const &value, std::string const &ending)
+      |                 ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:133:37: warning: unused function 'Split' [-Wunused-function]
+  133 |     static std::vector<std::string> Split(const std::string &str, const std::string &delimiter)
+      |                                     ^~~~~
+/workspace/ps5-ezremote-server/source/util.h:152:24: warning: unused function 'ToString' [-Wunused-function]
+  152 |     static std::string ToString(int value)
+      |                        ^~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:159:24: warning: unused function 'UrlHash' [-Wunused-function]
+  159 |     static std::string UrlHash(const std::string &text)
+      |                        ^~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:180:17: warning: unused function 'SetupPreviousFolder' [-Wunused-function]
+  180 |     static void SetupPreviousFolder(const std::string &path, DirEntry *entry)
+      |                 ^~~~~~~~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:342:19: warning: unused function 'NthOccurrence' [-Wunused-function]
+  342 |     static size_t NthOccurrence(const std::string &str, const std::string &findMe, int nth, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~
+/workspace/ps5-ezremote-server/source/util.h:368:19: warning: unused function 'CountOccurrence' [-Wunused-function]
+  368 |     static size_t CountOccurrence(const std::string &str, const std::string &findMe, size_t start_pos = 0, size_t end_pos = INT_MAX)
+      |                   ^~~~~~~~~~~~~~~
+17 warnings generated.
+ninja: build stopped: subcommand failed.
+
+make: *** [Makefile:8: build] Error 1

@@ -154,14 +154,15 @@ namespace INSTALLER
     bool canInstallRemotePkg(const std::string &url);
     bool CanDirectDownloadUrl(const std::string &url);
     bool IsSafeDirectInstallUrl(const std::string &url);
-    std::string getRemoteUrl(const std::string path, bool encodeUrl = false);
-    int InstallRemotePkg(const std::string &url, pkg_header *header, std::string title, const std::string &path = "");
+    std::string getRemoteUrl(RemoteSettings* settings, const std::string path, bool encodeUrl = false);
+    int InstallRemotePkg(RemoteClient* client, const std::string &url, pkg_header *header, std::string title, const std::string &path = "");
     int InstallLocalPkg(const std::string &path, pkg_header *header, bool remove_after_install = false);
     int InstallLocalPkg(const std::string &path);
     bool ExtractLocalPkg(const std::string &path, const std::string sfo_path, const std::string icon_path);
     bool ExtractRemotePkg(const std::string &path, const std::string sfo_path, const std::string icon_path);
     std::string GetRemotePkgTitle(RemoteClient *client, const std::string &path, pkg_header *header);
     std::string GetLocalPkgTitle(const std::string &path, pkg_header *header);
+    bool GetPkgSfoInfo(const std::string &path, RemoteClient *client, std::map<std::string, std::string> &sfo_params);
     ArchivePkgInstallData *GetArchivePkgInstallData(const std::string &hash);
     void AddArchivePkgInstallData(const std::string &hash, ArchivePkgInstallData *pkg_data);
     void RemoveArchivePkgInstallData(const std::string &hash);

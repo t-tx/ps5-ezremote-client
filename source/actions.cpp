@@ -37,10 +37,64 @@
 
 namespace Actions
 {
+    static pthread_mutex_t server_restart_mutex = PTHREAD_MUTEX_INITIALIZER;
+    static bool server_restart_in_progress = false;
+
     static int FtpCallback(int64_t xfered, void *arg)
     {
         bytes_transfered = xfered;
         return 1;
+    }
+
+    static bool TryBeginServerRestart()
+    {
+        bool started = false;
+
+        pthread_mutex_lock(&server_restart_mutex);
+        if (!server_restart_in_progress)
+        {
+            server_restart_in_progress = true;
+            started = true;
+        }
+        pthread_mutex_unlock(&server_restart_mutex);
+
+        return started;
+    }
+
+    static void EndServerRestart()
+    {
+        pthread_mutex_lock(&server_restart_mutex);
+        server_restart_in_progress = false;
+        pthread_mutex_unlock(&server_restart_mutex);
+    }
+
+    bool IsServerRestartInProgress()
+    {
+        bool in_progress;
+
+        pthread_mutex_lock(&server_restart_mutex);
+        in_progress = server_restart_in_progress;
+        pthread_mutex_unlock(&server_restart_mutex);
+
+        return in_progress;
+    }
+
+    static std::string WaitForEzRemoteServerState(bool wait_for_started)
+    {
+        std::string version;
+
+        for (int attempt = 1; attempt <= 7; ++attempt)
+        {
+            version = INSTALLER::EzRemoteServerVersion();
+            if (wait_for_started == !version.empty())
+                return version;
+
+            dbglogger_log("[ezremote-client] RestartServer: /version check %d/7 did not confirm %s", attempt, wait_for_started ? "started" : "stopped");
+            if (attempt < 7)
+                usleep(1000000);
+        }
+
+        return version;
     }
 
     static void RecursiveSearchLocal(const std::string& path, const std::regex& re, int current_layer, int max_layer, std::vector<DirEntry>& results, const std::string& relative_prefix)
@@ -908,16 +962,30 @@ namespace Actions
         int skipped = 0;
 
         std::vector<DirEntry> files;
-        if (multi_selected_remote_files.size() > 0)
-            std::copy(multi_selected_remote_files.begin(), multi_selected_remote_files.end(), std::back_inserter(files));
-        else
-            files.push_back(selected_remote_file);
+        RemoteClient* client = remoteclient;
+        RemoteSettings* settings = remote_settings;
+        bool from_web = false;
+        int site_idx = -1;
+        RemoteInstallJob* job = (RemoteInstallJob*)argp;
+
+        if (job) {
+            files = job->files;
+            client = job->client;
+            settings = job->settings;
+            from_web = job->from_web;
+            site_idx = job->site_idx;
+        } else {
+            if (multi_selected_remote_files.size() > 0)
+                std::copy(multi_selected_remote_files.begin(), multi_selected_remote_files.end(), std::back_inserter(files));
+            else
+                files.push_back(selected_remote_file);
+        }
 
         for (std::vector<DirEntry>::iterator it = files.begin(); it != files.end(); ++it)
         {
-            if (stop_activity)
+            if (stop_activity && !from_web)
                 break;
-            sprintf(activity_message, "%s %s", lang_strings[STR_INSTALLING], it->name);
+            if (!from_web) sprintf(activity_message, "%s %s", lang_strings[STR_INSTALLING], it->name);
 
             if (!it->isDir)
             {
@@ -928,23 +996,23 @@ namespace Actions
                     pkg_header header;
                     memset(&header, 0, sizeof(header));
 
-                    if (remoteclient->Head(it->path, (void *)&header, sizeof(header)) == 0)
+                    if (client->Head(it->path, (void *)&header, sizeof(header)) == 0)
                         failed++;
                     else
                     {
                         if (BE32(header.pkg_magic) == PS4_PKG_MAGIC || BE32(header.pkg_magic) == PS5_PKG_MAGIC)
                         {
                             // PS5 PKGs are not reliable through the RPI/DPI HTTP path; install after a local download.
-                            if (!remote_settings->enable_rpi || BE32(header.pkg_magic) == PS5_PKG_MAGIC)
+                            if (!settings->enable_rpi || BE32(header.pkg_magic) == PS5_PKG_MAGIC)
                             {
-                                if (DownloadAndInstallPkg(it->path, &header) == 0)
+                                if (DownloadAndInstallPkg(client, it->path, &header) == 0)
                                     failed++;
                                 else
                                     success++;
                             }
                             else
                             {
-                                if (remote_settings->enable_disk_cache)
+                                if (settings->enable_disk_cache)
                                 {
                                     SplitPkgInstallData *install_data = (SplitPkgInstallData*) malloc(sizeof(SplitPkgInstallData));
                                     memset(install_data, 0, sizeof(SplitPkgInstallData));
@@ -954,9 +1022,9 @@ namespace Actions
                                     SplitFile *sp = new SplitFile(install_pkg_path, INSTALL_ARCHIVE_PKG_SPLIT_SIZE/2);
 
                                     install_data->split_file = sp;
-                                    install_data->remote_client = INSTALLER::GetRemoteClient(remote_settings);
+                                    install_data->remote_client = INSTALLER::GetRemoteClient(settings);
                                     install_data->path = it->path;
-                                    remoteclient->Size(it->path, &install_data->size);
+                                    client->Size(it->path, &install_data->size);
                                     install_data->stop_write_thread = false;
                                     install_data->delete_client = true;
 
@@ -969,9 +1037,9 @@ namespace Actions
                                 }
                                 else
                                 {
-                                    std::string url = INSTALLER::getRemoteUrl(it->path, true);
-                                    std::string title = INSTALLER::GetRemotePkgTitle(remoteclient, it->path, &header);
-                                    if (INSTALLER::InstallRemotePkg(url, &header, title, it->path) == 0)
+                                    std::string url = INSTALLER::getRemoteUrl(settings, it->path, true);
+                                    std::string title = INSTALLER::GetRemotePkgTitle(client, it->path, &header);
+                                    if (INSTALLER::InstallRemotePkg(client, url, &header, title, it->path) == 0)
                                         failed++;
                                     else
                                         success++;
@@ -990,12 +1058,12 @@ namespace Actions
                 else if (Util::EndsWith(path,".zip") || Util::EndsWith(path,".rar") || Util::EndsWith(path,".7z") ||
                         Util::EndsWith(path,".tar.xz") || Util::EndsWith(path,".tar.gz"))
                 {
-                    ArchiveEntry *entry = ZipUtil::GetPackageEntry(it->path, remoteclient);
+                    ArchiveEntry *entry = ZipUtil::GetPackageEntry(it->path, client);
                     if (entry != nullptr)
                     {
                         while (entry != nullptr)
                         {
-                            snprintf(activity_message, 1023, "%s %s", lang_strings[STR_INSTALLING], entry->filename.c_str());
+                            if (!from_web) snprintf(activity_message, 1023, "%s %s", lang_strings[STR_INSTALLING], entry->filename.c_str());
 
                             ArchivePkgInstallData *install_data = new ArchivePkgInstallData{};
 
@@ -1025,14 +1093,23 @@ namespace Actions
             else
                 skipped++;
 
-            if (failed == 1 && success == 0)
+            if (!from_web)
             {
-                std::string error = INSTALLER::GetLastInstallError();
-                if (!error.empty())
+                if (failed == 1 && success == 0)
                 {
-                    sprintf(status_message, "%s %s = %d, %s = %d (%s), %s = %d", lang_strings[STR_INSTALL],
-                        lang_strings[STR_INSTALL_SUCCESS], success, lang_strings[STR_INSTALL_FAILED], failed, error.c_str(),
-                        lang_strings[STR_INSTALL_SKIPPED], skipped);
+                    std::string error = INSTALLER::GetLastInstallError();
+                    if (!error.empty())
+                    {
+                        sprintf(status_message, "%s %s = %d, %s = %d (%s), %s = %d", lang_strings[STR_INSTALL],
+                            lang_strings[STR_INSTALL_SUCCESS], success, lang_strings[STR_INSTALL_FAILED], failed, error.c_str(),
+                            lang_strings[STR_INSTALL_SKIPPED], skipped);
+                    }
+                    else
+                    {
+                        sprintf(status_message, "%s %s = %d, %s = %d, %s = %d", lang_strings[STR_INSTALL],
+                                lang_strings[STR_INSTALL_SUCCESS], success, lang_strings[STR_INSTALL_FAILED], failed,
+                                lang_strings[STR_INSTALL_SKIPPED], skipped);
+                    }
                 }
                 else
                 {
@@ -1041,17 +1118,19 @@ namespace Actions
                             lang_strings[STR_INSTALL_SKIPPED], skipped);
                 }
             }
-            else
-            {
-                sprintf(status_message, "%s %s = %d, %s = %d, %s = %d", lang_strings[STR_INSTALL],
-                        lang_strings[STR_INSTALL_SUCCESS], success, lang_strings[STR_INSTALL_FAILED], failed,
-                        lang_strings[STR_INSTALL_SKIPPED], skipped);
-            }
         }
     finish:
-        activity_inprogess = false;
-        multi_selected_remote_files.clear();
-        Windows::SetModalMode(false);
+        if (!from_web)
+        {
+            activity_inprogess = false;
+            multi_selected_remote_files.clear();
+            Windows::SetModalMode(false);
+        }
+        else
+        {
+            HttpServer::ReleasePooledClient(site_idx, client);
+            delete job;
+        }
         return NULL;
     }
 
@@ -2126,19 +2205,19 @@ namespace Actions
         }
     }
 
-    int DownloadAndInstallPkg(const std::string &filename, pkg_header *header)
+    int DownloadAndInstallPkg(RemoteClient* client, const std::string &filename, pkg_header *header)
     {
         char local_file[2000];
         uint64_t tick = Util::GetTick();
         sprintf(local_file, "%s/%lu.pkg", temp_folder, tick);
 
         sprintf(activity_message, "%s %s to %s", lang_strings[STR_DOWNLOADING], filename.c_str(), local_file);
-        remoteclient->Size(filename, &bytes_to_download);
+        client->Size(filename, &bytes_to_download);
         bytes_transfered = 0;
         prev_tick = Util::GetTick();
 
         file_transfering = true;
-        int ret = remoteclient->Get(local_file, filename);
+        int ret = client->Get(local_file, filename);
         if (ret == 0)
             return 0;
 
@@ -2186,12 +2265,102 @@ namespace Actions
         sprintf(remote_file_to_select, "%s", temp_file.c_str());
     }
 
+    static void *RestartServerThread(void *argp)
+    {
+        (void)argp;
+
+        dbglogger_log("[ezremote-client] RestartServer: worker started");
+        snprintf(status_message, 1024, "%s", "Restarting ezremote-server...");
+        Util::Notify("Restarting ezremote-server...");
+
+        StopServer();
+
+        std::string stop_version = WaitForEzRemoteServerState(false);
+        if (!stop_version.empty())
+        {
+            is_server_started = true;
+            snprintf(status_message, 1024, "%s", "ezremote-server restart failed: server did not stop");
+            dbglogger_log("[ezremote-client] RestartServer: stop timed out, version=%s", stop_version.c_str());
+            Util::Notify("ezremote-server restart failed: server did not stop");
+            EndServerRestart();
+            return NULL;
+        }
+
+        is_server_started = false;
+
+        int start_ret = INSTALLER::StartEzRemoteServer();
+        if (start_ret != 0)
+        {
+            snprintf(status_message, 1024, "%s", "ezremote-server restart failed: start request failed");
+            dbglogger_log("[ezremote-client] RestartServer: StartEzRemoteServer failed (%d)", start_ret);
+            Util::Notify("ezremote-server restart failed: start request failed");
+            EndServerRestart();
+            return NULL;
+        }
+
+        std::string version = WaitForEzRemoteServerState(true);
+        if (version.empty())
+        {
+            is_server_started = false;
+            snprintf(status_message, 1024, "%s", "ezremote-server restart failed: /version unavailable");
+            dbglogger_log("[ezremote-client] RestartServer: final status=DOWN");
+            Util::Notify("ezremote-server restart failed: /version unavailable");
+            EndServerRestart();
+            return NULL;
+        }
+
+        is_server_started = true;
+        snprintf(status_message, 1024, "ezremote-server restarted (v%s)", version.c_str());
+        dbglogger_log("[ezremote-client] RestartServer: final status=UP, version=%s", version.c_str());
+        Util::Notify("ezremote-server restarted (v%s)", version.c_str());
+
+        EndServerRestart();
+        return NULL;
+    }
+
     void RestartServer()
     {
-        StopServer();
-        sleep(2);
-        INSTALLER::StartEzRemoteServer();
-        sleep(2);
+        pthread_t restart_thread;
+
+        dbglogger_log("[ezremote-client] RestartServer: requested");
+        if (!TryBeginServerRestart())
+        {
+            dbglogger_log("[ezremote-client] RestartServer: ignored because restart is already in progress");
+            return;
+        }
+
+        int ret = pthread_create(&restart_thread, NULL, RestartServerThread, NULL);
+        if (ret != 0)
+        {
+            EndServerRestart();
+            snprintf(status_message, 1024, "%s", "ezremote-server restart failed: unable to create worker");
+            dbglogger_log("[ezremote-client] RestartServer: pthread_create failed (%d)", ret);
+            Util::Notify("ezremote-server restart failed: unable to create worker");
+            return;
+        }
+
+        ret = pthread_detach(restart_thread);
+        if (ret != 0)
+        {
+            dbglogger_log("[ezremote-client] RestartServer: pthread_detach failed (%d)", ret);
+        }
+    }
+
+    void OpenLocalWebUi()
+    {
+        std::string url = "http://localhost:" + std::to_string(http_server_port);
+
+        dbglogger_log("[ezremote-client] OpenLocalWebUi: launching browser: %s", url.c_str());
+        int ret = sceSystemServiceLaunchWebBrowser(url.c_str());
+        if (ret != 0)
+        {
+            snprintf(status_message, 1024, "Failed to open browser: %s", url.c_str());
+            dbglogger_log("[ezremote-client] OpenLocalWebUi: sceSystemServiceLaunchWebBrowser failed (%d)", ret);
+            Util::Notify("Failed to open browser: %s", url.c_str());
+            return;
+        }
+
+        snprintf(status_message, 1024, "Opening browser: %s", url.c_str());
     }
 
     void StopServer()
@@ -2203,7 +2372,15 @@ namespace Actions
         tmp_client.SetCertificateFile(CACERT_FILE);
         tmp_client.SetTimeout(1);
 
-        tmp_client.Get("http://localhost:" + std::to_string(http_int_server_port) + "/stop", headers, res);
+        bool success = tmp_client.Get("http://localhost:" + std::to_string(http_int_server_port) + "/stop", headers, res);
+        if (success)
+        {
+            dbglogger_log("[ezremote-client] StopServer: /stop returned HTTP %d", res.iCode);
+        }
+        else
+        {
+            dbglogger_log("[ezremote-client] StopServer: failed to call /stop (server may already be down)");
+        }
     }
 
     void GetBackgroundDownloadProgress()

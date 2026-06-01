@@ -60,4 +60,17 @@ Keep blank lines completely empty when editing C/C++ files. After patches that t
 
 ---
 
+## 5. Curl FTP Deploy Fails On Asset Filenames With Spaces
+
+### The Failure Attempt
+Quieting the `make deploy` `data/assets` sync by uploading each asset to `ftp://.../assets/$$file` with curl.
+
+### The Pattern / Symptom
+ELF uploads succeed, then the asset sync fails with `curl: (3) URL using bad/illegal format or missing URL`. This happens for asset filenames with spaces, such as `langs/Traditional Chinese.ini` and `langs/Simplified Chinese.ini`, because curl parses the FTP target URL before upload and rejects literal spaces in the URL path.
+
+### The Solution
+Do not embed the asset basename in the FTP URL. Compute the remote directory from the relative path, pass that directory URL to curl, and let `curl -T "$$file" "ftp://.../assets/$$dir/"` use the local basename. This keeps success output quiet while still showing curl errors via `--silent --show-error --fail`.
+
+---
+
 *(Add new failure patterns and solutions here as they are discovered)*

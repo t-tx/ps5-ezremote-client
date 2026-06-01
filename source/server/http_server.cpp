@@ -34,6 +34,7 @@
 #include "zip_util.h"
 #include "util.h"
 #include "dbglogger.h"
+#include "actions.h"
 
 #define SUCCESS_MSG "{ \"result\": { \"success\": true, \"error\": null } }"
 #define FAILURE_MSG "{ \"result\": { \"success\": false, \"error\": \"%s\" } }"
@@ -195,7 +196,7 @@ namespace HttpServer
     static std::mutex client_pool_mutex;
     static std::map<int, std::vector<RemoteClient*>> client_pool;
 
-    static RemoteClient* GetPooledClient(int site_idx)
+    RemoteClient* GetPooledClient(int site_idx)
     {
         std::lock_guard<std::mutex> lock(client_pool_mutex);
         auto& pool = client_pool[site_idx];
@@ -207,7 +208,7 @@ namespace HttpServer
         return INSTALLER::GetRemoteClient(site_idx);
     }
 
-    static void ReleasePooledClient(int site_idx, RemoteClient *tmp_client)
+    void ReleasePooledClient(int site_idx, RemoteClient *tmp_client)
     {
         if (site_idx == 98) {
             tmp_client->Quit();
@@ -328,6 +329,290 @@ namespace HttpServer
                 [in](bool success) {
                     FS::Close(in);
                 }); });
+
+        svr->Get("/api/sites", [&](const Request &req, Response &res) {
+            json_object *json_sites = json_object_new_array();
+            for (size_t i = 0; i < sites.size(); i++) {
+                RemoteSettings& s = site_settings[sites[i]];
+                if (s.server[0] != '\0') {
+                    json_object *site = json_object_new_object();
+                    json_object_object_add(site, "index", json_object_new_int(i));
+                    json_object_object_add(site, "name", json_object_new_string(s.site_name));
+                    json_object_object_add(site, "server", json_object_new_string(s.server));
+                    json_object_array_add(json_sites, site);
+                }
+            }
+            json_object *results = json_object_new_object();
+            json_object_object_add(results, "result", json_sites);
+            const char *results_str = json_object_to_json_string(results);
+            res.status = 200;
+            res.set_content(results_str, strlen(results_str), "application/json");
+            json_object_put(results);
+        });
+
+        svr->Post("/api/sitelist", [&](const Request &req, Response &res) {
+            const char *path;
+            json_object *jobj = json_tokener_parse(req.body.c_str());
+            if (!jobj) { bad_request(res, "Invalid payload"); return; }
+            path = json_object_get_string(json_object_object_get(jobj, "path"));
+            int site_idx = json_object_get_int(json_object_object_get(jobj, "site_idx"));
+            if (!path) { bad_request(res, "Missing path"); json_object_put(jobj); return; }
+
+            RemoteClient *client = GetPooledClient(site_idx);
+            if (!client || !client->IsConnected()) {
+                if (client) ReleasePooledClient(site_idx, client);
+                bad_request(res, "Failed to connect to remote site");
+                json_object_put(jobj);
+                return;
+            }
+
+            std::vector<DirEntry> files = client->ListDir(path);
+            DirEntry::Sort(files);
+
+            json_object *json_files = json_object_new_array();
+            for (auto& file : files) {
+                if (strcmp(file.name, "..") != 0) {
+                    json_object *new_file = json_object_new_object();
+                    char display_date[32];
+                    sprintf(display_date, "%04d-%02d-%02d %02d:%02d:%02d", file.modified.year, file.modified.month, file.modified.day, file.modified.hours, file.modified.minutes, file.modified.seconds);
+                    json_object_object_add(new_file, "name", json_object_new_string(file.name));
+                    json_object_object_add(new_file, "rights", json_object_new_string(file.isDir ? "drwxrwxrwx" : "rw-rw-rw-"));
+                    json_object_object_add(new_file, "date", json_object_new_string(display_date));
+                    json_object_object_add(new_file, "size", json_object_new_string(file.isDir ? "" : std::to_string(file.file_size).c_str()));
+                    json_object_object_add(new_file, "type", json_object_new_string(file.isDir ? "dir" : "file"));
+                    json_object_array_add(json_files, new_file);
+                }
+            }
+            ReleasePooledClient(site_idx, client);
+
+            json_object *results = json_object_new_object();
+            json_object_object_add(results, "result", json_files);
+            const char *results_str = json_object_to_json_string(results);
+            res.status = 200;
+            res.set_content(results_str, strlen(results_str), "application/json");
+            json_object_put(results);
+            json_object_put(jobj);
+        });
+
+        svr->Get("/api/sitedownload", [&](const Request &req, Response &res) {
+            if (!req.has_param("site_idx") || !req.has_param("path")) {
+                res.status = 400;
+                res.set_content("Missing params", "text/plain");
+                return;
+            }
+            int site_idx = std::stoi(req.get_param_value("site_idx"));
+            std::string path = req.get_param_value("path");
+
+            RemoteClient *client = GetPooledClient(site_idx);
+            if (!client || !client->IsConnected()) {
+                if (client) ReleasePooledClient(site_idx, client);
+                res.status = 500;
+                res.set_content("Connection failed", "text/plain");
+                return;
+            }
+
+            uint64_t file_size = 0;
+            client->Size(path, &file_size);
+
+            res.set_content_provider(
+                file_size, "application/octet-stream",
+                [client, path](size_t offset, size_t length, DataSink &sink) {
+                    return client->GetRange(path, sink, length, offset) == 0;
+                },
+                [client, site_idx](bool success) {
+                    ReleasePooledClient(site_idx, client);
+                });
+        });
+
+        svr->Post("/api/siteinstall", [&](const Request &req, Response &res) {
+            json_object *jobj = json_tokener_parse(req.body.c_str());
+            if (!jobj) {
+                bad_request(res, "Invalid payload");
+                return;
+            }
+
+            json_object *items = json_object_object_get(jobj, "items");
+            json_object *site_idx_obj = json_object_object_get(jobj, "site_idx");
+            int site_idx = -1;
+
+            if (site_idx_obj && json_object_get_type(site_idx_obj) != json_type_null) {
+                site_idx = json_object_get_int(site_idx_obj);
+            }
+
+            if (!items || site_idx < 0) {
+                bad_request(res, "Required items or site_idx parameter missing");
+                json_object_put(jobj);
+                return;
+            }
+
+            RemoteClient *client = GetPooledClient(site_idx);
+            if (!client || !client->IsConnected()) {
+                if (client) ReleasePooledClient(site_idx, client);
+                failed(res, 500, "Connection failed");
+                json_object_put(jobj);
+                return;
+            }
+
+            Actions::RemoteInstallJob *job = new Actions::RemoteInstallJob();
+            job->client = client;
+            job->site_idx = site_idx;
+            job->settings = &site_settings[sites[site_idx]];
+            job->from_web = true;
+
+            size_t len = json_object_array_length(items);
+            for (size_t i=0; i < len; i++) {
+                const char *item = json_object_get_string(json_object_array_get_idx(items, i));
+                DirEntry entry;
+                memset(&entry, 0, sizeof(entry));
+                std::string temp = std::string(item);
+                size_t slash_pos = temp.find_last_of("/");
+                sprintf(entry.name, "%s", temp.substr(slash_pos+1).c_str());
+                sprintf(entry.path, "%s", item);
+                entry.isDir = false;
+                job->files.push_back(entry);
+            }
+
+            pthread_t thread_id;
+            pthread_create(&thread_id, NULL, Actions::InstallRemotePkgsThread, job);
+
+            success(res);
+            json_object_put(jobj);
+        });
+
+        svr->Post("/api/sitemkdir", [&](const Request &req, Response &res) {
+            json_object *jobj = json_tokener_parse(req.body.c_str());
+            if (!jobj) { bad_request(res, "Invalid payload"); return; }
+            json_object *site_idx_obj = json_object_object_get(jobj, "site_idx");
+            json_object *path_obj = json_object_object_get(jobj, "newPath");
+            if (!site_idx_obj || !path_obj) { bad_request(res, "Missing parameters"); json_object_put(jobj); return; }
+            int site_idx = json_object_get_int(site_idx_obj);
+            const char* path = json_object_get_string(path_obj);
+            RemoteClient *client = GetPooledClient(site_idx);
+            if (!client || !client->IsConnected()) { if (client) ReleasePooledClient(site_idx, client); failed(res, 500, "Connection failed"); json_object_put(jobj); return; }
+            int r = client->Mkdir(path);
+            ReleasePooledClient(site_idx, client);
+            if (r != 0) success(res); else failed(res, 500, "Mkdir failed");
+            json_object_put(jobj);
+        });
+
+        svr->Post("/api/siterename", [&](const Request &req, Response &res) {
+            json_object *jobj = json_tokener_parse(req.body.c_str());
+            if (!jobj) { bad_request(res, "Invalid payload"); return; }
+            json_object *site_idx_obj = json_object_object_get(jobj, "site_idx");
+            json_object *oldPath_obj = json_object_object_get(jobj, "oldPath");
+            json_object *newPath_obj = json_object_object_get(jobj, "newPath");
+            if (!site_idx_obj || !oldPath_obj || !newPath_obj) { bad_request(res, "Missing parameters"); json_object_put(jobj); return; }
+            int site_idx = json_object_get_int(site_idx_obj);
+            const char* oldPath = json_object_get_string(oldPath_obj);
+            const char* newPath = json_object_get_string(newPath_obj);
+            RemoteClient *client = GetPooledClient(site_idx);
+            if (!client || !client->IsConnected()) { if (client) ReleasePooledClient(site_idx, client); failed(res, 500, "Connection failed"); json_object_put(jobj); return; }
+            int r = client->Rename(oldPath, newPath);
+            ReleasePooledClient(site_idx, client);
+            if (r != 0) success(res); else failed(res, 500, "Rename failed");
+            json_object_put(jobj);
+        });
+
+        svr->Post("/api/siteremove", [&](const Request &req, Response &res) {
+            json_object *jobj = json_tokener_parse(req.body.c_str());
+            if (!jobj) { bad_request(res, "Invalid payload"); return; }
+            json_object *site_idx_obj = json_object_object_get(jobj, "site_idx");
+            json_object *items_obj = json_object_object_get(jobj, "items");
+            if (!site_idx_obj || !items_obj || json_object_get_type(items_obj) != json_type_array) { bad_request(res, "Missing or invalid parameters"); json_object_put(jobj); return; }
+            int site_idx = json_object_get_int(site_idx_obj);
+            RemoteClient *client = GetPooledClient(site_idx);
+            if (!client || !client->IsConnected()) { if (client) ReleasePooledClient(site_idx, client); failed(res, 500, "Connection failed"); json_object_put(jobj); return; }
+            bool all_success = true;
+            size_t len = json_object_array_length(items_obj);
+            for (size_t i=0; i<len; i++) {
+                const char* item = json_object_get_string(json_object_array_get_idx(items_obj, i));
+                if (client->Delete(item) == 0) {
+                    if (client->Rmdir(item, true) == 0) {
+                        all_success = false;
+                    }
+                }
+            }
+            ReleasePooledClient(site_idx, client);
+            if (all_success) success(res); else failed(res, 500, "Some removes failed");
+            json_object_put(jobj);
+        });
+
+        svr->Post("/api/pkginfo", [&](const Request &req, Response &res) {
+            json_object *jobj = json_tokener_parse(req.body.c_str());
+            if (!jobj) {
+                bad_request(res, "Invalid payload");
+                return;
+            }
+
+            const char *path = json_object_get_string(json_object_object_get(jobj, "path"));
+            json_object *site_idx_obj = json_object_object_get(jobj, "site_idx");
+            int site_idx = -1;
+
+            if (site_idx_obj && json_object_get_type(site_idx_obj) != json_type_null) {
+                site_idx = json_object_get_int(site_idx_obj);
+            }
+
+            if (!path) {
+                bad_request(res, "Required path parameter missing");
+                json_object_put(jobj);
+                return;
+            }
+
+            RemoteClient *client = nullptr;
+            if (site_idx >= 0) {
+                client = GetPooledClient(site_idx);
+                if (!client || !client->IsConnected()) {
+                    if (client) ReleasePooledClient(site_idx, client);
+                    failed(res, 500, "Connection failed");
+                    json_object_put(jobj);
+                    return;
+                }
+            }
+
+            std::map<std::string, std::string> sfo_params;
+            if (!INSTALLER::GetPkgSfoInfo(path, client, sfo_params)) {
+                if (client) ReleasePooledClient(site_idx, client);
+                failed(res, 400, "Could not read PKG metadata");
+                json_object_put(jobj);
+                return;
+            }
+
+            std::string title_id = sfo_params["TITLE_ID"];
+            std::string icon_url = "";
+            if (!title_id.empty()) {
+                std::string icon_path = std::string("/data/homebrew/ezremote-client/game-icons/") + title_id + ".png";
+                FS::MkDirs("/data/homebrew/ezremote-client/game-icons");
+                
+                if (client) {
+                    INSTALLER::ExtractRemotePkg(path, "/data/homebrew/ezremote-client/temp.sfo", icon_path);
+                } else {
+                    INSTALLER::ExtractLocalPkg(path, "/data/homebrew/ezremote-client/temp.sfo", icon_path);
+                }
+
+                if (FS::FileExists(icon_path)) {
+                    icon_url = "/game-icons/" + title_id + ".png";
+                }
+            }
+
+            if (client) {
+                ReleasePooledClient(site_idx, client);
+            }
+
+            json_object *res_obj = json_object_new_object();
+            for (auto const& [key, val] : sfo_params) {
+                json_object_object_add(res_obj, key.c_str(), json_object_new_string(val.c_str()));
+            }
+            if (!icon_url.empty()) {
+                json_object_object_add(res_obj, "ICON_URL", json_object_new_string(icon_url.c_str()));
+            }
+
+            const char *res_str = json_object_to_json_string(res_obj);
+            res.status = 200;
+            res.set_content(res_str, strlen(res_str), "application/json");
+
+            json_object_put(res_obj);
+            json_object_put(jobj);
+        });
 
         svr->Post("/__local__/list", [&](const Request &req, Response &res)
         {
@@ -1433,7 +1718,7 @@ namespace HttpServer
                         }
                     }
 
-                    int rc = INSTALLER::InstallRemotePkg(remote_install_url, &header, title);
+                    int rc = INSTALLER::InstallRemotePkg(baseclient, remote_install_url, &header, title);
                     cleanup_baseclient();
                     activity_inprogess = false;
                     file_transfering = false;
@@ -1641,8 +1926,29 @@ namespace HttpServer
             failed(res, 200, "Failed to download");
         });
 
+        svr->Get("/__local__/restart_daemon", [&](const Request & /*req*/, Response & res) {
+            Actions::RestartServer();
+            res.set_content("{\"status\":\"restarting\"}", "application/json");
+        });
+
         svr->Get("/stop", [&](const Request & /*req*/, Response & /*res*/) {
             svr->stop();
+        });
+
+        // Add global CORS headers for dev frontend
+        auto set_cors_headers = [](Response &res) {
+            res.set_header("Access-Control-Allow-Origin", "*");
+            res.set_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+            res.set_header("Access-Control-Allow-Headers", "Content-Type");
+        };
+
+        svr->Options(".*", [set_cors_headers](const Request &req, Response &res) {
+            set_cors_headers(res);
+            res.status = 200;
+        });
+
+        svr->set_post_routing_handler([set_cors_headers](const Request &req, Response &res) {
+            set_cors_headers(res);
         });
 
         svr->Post("/speedtest", [&](const Request &req, Response &res, const ContentReader &content_reader)
@@ -1664,7 +1970,25 @@ namespace HttpServer
             }
             
             std::string result = "{ \"result\": { \"success\": true, \"duration_ms\": " + std::to_string(duration_ms) + ", \"total_bytes\": " + std::to_string(total_received) + ", \"mbps\": " + std::to_string(mbps) + " } }";
+            set_cors_headers(res);
             res.set_content(result, "application/json");
+        });
+
+        svr->Get("/speedtest_download", [&](const Request &req, Response &res)
+        {
+            size_t total_size = 200 * 1024 * 1024; // 200MB
+            set_cors_headers(res);
+            res.set_content_provider(
+                total_size,
+                "application/octet-stream",
+                [](size_t offset, size_t length, DataSink &sink) {
+                    size_t chunk_size = std::min(length, (size_t)(1024 * 1024)); // 1MB chunks
+                    std::vector<char> buffer(chunk_size, '0');
+                    sink.write(buffer.data(), chunk_size);
+                    return true;
+                },
+                [](bool success) {}
+            );
         });
 
         svr->Post("/speedtest_multipart", [&](const Request &req, Response &res, const ContentReader &content_reader)
@@ -1691,6 +2015,7 @@ namespace HttpServer
             }
             
             std::string result = "{ \"result\": { \"success\": true, \"duration_ms\": " + std::to_string(duration_ms) + ", \"total_bytes\": " + std::to_string(total_received) + ", \"mbps\": " + std::to_string(mbps) + " } }";
+            set_cors_headers(res);
             res.set_content(result, "application/json");
         });
 
