@@ -63,6 +63,12 @@ export const installRemotePackages = (site_idx, items) =>
 export const createRemoteFolder = (site_idx, newPath) => 
   fetchApi('/api/sitemkdir', { site_idx, newPath });
 
+export const downloadRemoteItem = (site_idx, path) =>
+  fetchApi('/api/sitedownloaddest', { site_idx, path });
+
+export const extractRemoteItem = (site_idx, item, folderName) =>
+  fetchApi('/api/siteextract', { site_idx, item, destination: '/data', folderName });
+
 export const removeRemoteItems = (site_idx, items) => 
   fetchApi('/api/siteremove', { site_idx, items });
 
@@ -80,6 +86,17 @@ export const compressItems = (items, destination, compressedFilename) =>
 
 export const extractItem = (item, destination, folderName) => 
   fetchApi('/__local__/extract', { item, destination, folderName });
+
+export const getExtractStatus = async () => {
+  const response = await fetch(getMainUrl('/api/extract/status'));
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+  const data = await response.json();
+  if (data.result && data.result.success === false) {
+    throw new Error(data.result.error || 'Unknown error occurred');
+  }
+  return data.result || data;
+};
 
 // Note: Uploading files requires FormData and chunking for large files (PS5 requirement)
 export const uploadFile = async (path, file, onProgress) => {

@@ -2,16 +2,88 @@ import React, { useState, useEffect } from 'react';
 import Breadcrumbs from '../components/FileManager/Breadcrumbs';
 import FileList from '../components/FileManager/FileList';
 import UploadArea from '../components/FileManager/UploadArea';
-import { listFiles, listRemoteFiles, getSites, createFolder, createRemoteFolder, removeItems, removeRemoteItems, renameItem, renameRemoteItem, installPackages, installRemotePackages, getPkgInfo } from '../utils/api';
+import { listFiles, listRemoteFiles, getSites, createFolder, createRemoteFolder, removeItems, removeRemoteItems, renameItem, renameRemoteItem, installPackages, installRemotePackages, getPkgInfo, downloadRemoteItem, extractItem, extractRemoteItem, getExtractStatus } from '../utils/api';
 import { getMainUrl } from '../config';
-import { RefreshCw, FolderPlus, Globe } from 'lucide-react';
+import { RefreshCw, FolderPlus, Globe, FileArchive } from 'lucide-react';
 import PkgInfoModal from '../components/FileManager/PkgInfoModal';
 import FileActionModal from '../components/FileManager/FileActionModal';
+import { toast } from 'react-hot-toast';
+
+const LOCATION_STORAGE_KEYS = {
+  local: 'ezremote.fileManager.localLocation',
+  remote: 'ezremote.fileManager.remoteLocation'
+};
+
+const storageKeyFor = (isRemote) => isRemote ? LOCATION_STORAGE_KEYS.remote : LOCATION_STORAGE_KEYS.local;
+
+const normalizePath = (path) => {
+  if (typeof path !== 'string' || !path.trim()) return '/';
+  const normalized = `/${path.trim()}`.replace(/\/+/g, '/').replace(/\/$/, '');
+  return normalized || '/';
+};
+
+const clearSavedLocation = (isRemote) => {
+  try {
+    window.localStorage.removeItem(storageKeyFor(isRemote));
+  } catch {
+    // localStorage can be disabled in private or embedded browser modes.
+  }
+};
+
+const EXTRACT_STATE_COMPLETED = 2;
+const EXTRACT_STATE_FAILED = 3;
+
+const formatBytes = (bytes) => {
+  const value = Number(bytes || 0);
+  if (!value) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const index = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
+  return `${(value / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+};
+
+const progressPercent = (job) => {
+  const total = Number(job?.bytes_to_download || 0);
+  const done = Number(job?.bytes_transfered || 0);
+  if (!total || done <= 0) return null;
+  return Math.min(100, Math.round((done / total) * 100));
+};
+
+const readSavedLocation = (isRemote) => {
+  try {
+    const raw = window.localStorage.getItem(storageKeyFor(isRemote));
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    const path = normalizePath(saved?.path);
+    const siteIdx = Number.parseInt(saved?.siteIdx, 10);
+
+    if (isRemote) {
+      if (!Number.isFinite(siteIdx)) throw new Error('Invalid saved site');
+      return { path, siteIdx };
+    }
+
+    return { path };
+  } catch {
+    clearSavedLocation(isRemote);
+    return null;
+  }
+};
+
+const saveLocation = (isRemote, path, siteIdx) => {
+  const state = { path: normalizePath(path) };
+  if (isRemote) state.siteIdx = siteIdx;
+
+  try {
+    window.localStorage.setItem(storageKeyFor(isRemote), JSON.stringify(state));
+  } catch {
+    // Location persistence is a convenience; navigation should still work without it.
+  }
+};
 
 const FileManagerView = ({ isRemote = false }) => {
   const [currentPath, setCurrentPath] = useState('/');
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pkgInfoLoading, setPkgInfoLoading] = useState(false);
   const [error, setError] = useState(null);
   
   const [sites, setSites] = useState([]);
@@ -21,46 +93,130 @@ const FileManagerView = ({ isRemote = false }) => {
   const [pkgInfoData, setPkgInfoData] = useState(null);
   const [installFile, setInstallFile] = useState(null);
   const [selectedFileForAction, setSelectedFileForAction] = useState(null);
+  const [extractJobs, setExtractJobs] = useState([]);
 
-  const loadSites = async () => {
-    try {
-      const s = await getSites();
-      setSites(s);
-      if (isRemote && s.length > 0) {
-        setSelectedSite(s[0].index);
-        fetchFiles('/', s[0].index);
-      }
-    } catch (e) {
-      console.error("Failed to load sites", e);
-    }
-  };
-
-  const fetchFiles = async (path, siteIdx = selectedSite) => {
+  const fetchFiles = async (path, siteIdx = selectedSite, options = {}) => {
+    const nextPath = normalizePath(path);
+    const shouldSaveLocation = options.saveLocation !== false;
     setLoading(true);
     setError(null);
     try {
       let data;
       if (siteIdx === null) {
-        data = await listFiles(path);
+        data = await listFiles(nextPath);
+      } else if (siteIdx === -1 || typeof siteIdx === 'undefined') {
+        throw new Error('No remote site selected');
       } else {
-        data = await listRemoteFiles(siteIdx, path);
+        data = await listRemoteFiles(siteIdx, nextPath);
       }
       setFiles(data.result || []);
-      setCurrentPath(path);
+      setCurrentPath(nextPath);
+      if (shouldSaveLocation) saveLocation(isRemote, nextPath, siteIdx);
+      return true;
     } catch (err) {
       setError(err.message || 'Failed to load directory');
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (isRemote) {
-      loadSites();
-    } else {
-      fetchFiles('/');
-    }
+    let isActive = true;
+
+    const restoreLocation = async () => {
+      if (!isActive) return;
+      const savedLocation = readSavedLocation(isRemote);
+
+      const loadRestoredFiles = async (path, siteIdx) => {
+        const nextPath = normalizePath(path);
+        setLoading(true);
+        setError(null);
+        try {
+          const data = siteIdx === null ? await listFiles(nextPath) : await listRemoteFiles(siteIdx, nextPath);
+          if (!isActive) return false;
+          setFiles(data.result || []);
+          setCurrentPath(nextPath);
+          saveLocation(isRemote, nextPath, siteIdx);
+          return true;
+        } catch (err) {
+          if (isActive) setError(err.message || 'Failed to load directory');
+          return false;
+        } finally {
+          if (isActive) setLoading(false);
+        }
+      };
+
+      if (isRemote) {
+        try {
+          const loadedSites = await getSites();
+          if (!isActive) return;
+
+          setSites(loadedSites);
+          if (!loadedSites.length) {
+            setSelectedSite(-1);
+            clearSavedLocation(true);
+            return;
+          }
+
+          const savedSite = savedLocation && loadedSites.find((site) => Number.parseInt(site.index, 10) === savedLocation.siteIdx);
+          const siteIdx = savedSite ? savedSite.index : loadedSites[0].index;
+          const path = savedSite ? savedLocation.path : '/';
+
+          if (savedLocation && !savedSite) clearSavedLocation(true);
+          setSelectedSite(siteIdx);
+
+          const loaded = await loadRestoredFiles(path, siteIdx);
+          if (!isActive) return;
+          if (!loaded && path !== '/') {
+            clearSavedLocation(true);
+            await loadRestoredFiles('/', siteIdx);
+          } else if (!loaded) {
+            clearSavedLocation(true);
+          }
+        } catch (err) {
+          if (isActive) setError(err.message || 'Failed to load sites');
+        }
+        return;
+      }
+
+      const path = savedLocation?.path || '/';
+      const loaded = await loadRestoredFiles(path, null);
+      if (!isActive) return;
+      if (!loaded && path !== '/') {
+        clearSavedLocation(false);
+        await loadRestoredFiles('/', null);
+      } else if (!loaded) {
+        clearSavedLocation(false);
+      }
+    };
+
+    const restoreTimer = window.setTimeout(restoreLocation, 0);
+    return () => {
+      isActive = false;
+      window.clearTimeout(restoreTimer);
+    };
   }, [isRemote]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadExtractStatus = async () => {
+      try {
+        const status = await getExtractStatus();
+        if (isActive) setExtractJobs(status.jobs || []);
+      } catch {
+        if (isActive) setExtractJobs([]);
+      }
+    };
+
+    loadExtractStatus();
+    const timer = window.setInterval(loadExtractStatus, 2000);
+    return () => {
+      isActive = false;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   const handleNavigate = (folderName) => {
     if (folderName === '/') {
@@ -83,14 +239,19 @@ const FileManagerView = ({ isRemote = false }) => {
       }
       fetchFiles(currentPath);
     } catch (err) {
-      alert(`Failed to create folder: ${err.message}`);
+      toast.error(`Failed to create folder: ${err.message}`);
     }
   };
 
-  const handleDownload = (file) => {
+  const handleDownload = async (file) => {
     const fullPath = currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`;
     if (selectedSite !== null && selectedSite !== -1) {
-      window.open(getMainUrl(`/api/sitedownload?site_idx=${selectedSite}&path=${encodeURIComponent(fullPath)}`), '_blank');
+      try {
+        await downloadRemoteItem(selectedSite, fullPath);
+        toast.success(`${file.name} download started in background!`);
+      } catch (err) {
+        toast.error(`Download failed: ${err.message}`);
+      }
     } else {
       window.open(getMainUrl(`/__local__/downloadFile?path=${encodeURIComponent(fullPath)}`), '_blank');
     }
@@ -107,17 +268,17 @@ const FileManagerView = ({ isRemote = false }) => {
       }
       fetchFiles(currentPath);
     } catch (err) {
-      alert(`Delete failed: ${err.message}`);
+      toast.error(`Delete failed: ${err.message}`);
     }
   };
 
   const handleRename = async (file) => {
     const newName = prompt(`Enter new name for ${file.name}:`, file.name);
     if (!newName || newName === file.name) return;
-    
+
     const fullPath = currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`;
     const newPath = currentPath === '/' ? `/${newName}` : `${currentPath}/${newName}`;
-    
+
     try {
       if (selectedSite !== null && selectedSite !== -1) {
         await renameRemoteItem(selectedSite, fullPath, newPath);
@@ -126,27 +287,45 @@ const FileManagerView = ({ isRemote = false }) => {
       }
       fetchFiles(currentPath);
     } catch (err) {
-      alert(`Rename failed: ${err.message}`);
+      toast.error(`Rename failed: ${err.message}`);
+    }
+  };
+
+  const handleExtract = async (file) => {
+    const fullPath = currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`;
+    const folderName = file.name.replace(/\.[^/.]+$/, "");
+
+    try {
+      if (selectedSite !== null && selectedSite !== -1) {
+        await extractRemoteItem(selectedSite, fullPath, folderName);
+      } else {
+        await extractItem(fullPath, '/data', folderName);
+      }
+      toast.success(`${file.name} extraction queued to /data/${folderName}`);
+      const status = await getExtractStatus();
+      setExtractJobs(status.jobs || []);
+    } catch (err) {
+      toast.error(`Extract failed: ${err.message}`);
     }
   };
 
   const handleInstall = async (file) => {
     const fullPath = currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`;
     
-    setLoading(true);
+    setInstallFile(file);
+    setInstallModalOpen(true);
+    setPkgInfoLoading(true);
+    setPkgInfoData(null);
+
     try {
       const data = await getPkgInfo(fullPath, selectedSite === -1 ? null : selectedSite);
       setPkgInfoData(data);
     } catch (err) {
       console.error("Failed to load PKG info:", err);
-      // Fallback to empty if it fails
       setPkgInfoData(null);
     } finally {
-      setLoading(false);
+      setPkgInfoLoading(false);
     }
-
-    setInstallFile(file);
-    setInstallModalOpen(true);
   };
 
   const confirmInstall = async () => {
@@ -159,12 +338,14 @@ const FileManagerView = ({ isRemote = false }) => {
       } else {
         await installPackages([fullPath]);
       }
-      alert(`${installFile.name} installation started!`);
+      toast.success(`${installFile.name} installation started!`);
     } catch (err) {
-      alert(`Install failed: ${err.message}`);
+      toast.error(`Install failed: ${err.message}`);
     }
     setInstallFile(null);
   };
+
+  const visibleExtractJobs = extractJobs.slice(-3).reverse();
 
   return (
     <div className="max-w-6xl mx-auto w-full space-y-4">
@@ -175,6 +356,7 @@ const FileManagerView = ({ isRemote = false }) => {
         pkgInfo={pkgInfoData}
         fileName={installFile?.name}
         isRemote={isRemote}
+        isLoading={pkgInfoLoading}
       />
       <FileActionModal 
         isOpen={!!selectedFileForAction}
@@ -182,6 +364,7 @@ const FileManagerView = ({ isRemote = false }) => {
         isRemote={isRemote}
         onClose={() => setSelectedFileForAction(null)}
         onDownload={handleDownload}
+        onExtract={handleExtract}
         onInstall={handleInstall}
         onRename={handleRename}
         onDelete={handleDelete}
@@ -235,6 +418,42 @@ const FileManagerView = ({ isRemote = false }) => {
 
       <Breadcrumbs currentPath={currentPath} onNavigate={handleNavigate} />
 
+      {visibleExtractJobs.length > 0 && (
+        <div className="space-y-2">
+          {visibleExtractJobs.map((job) => {
+            const percent = progressPercent(job);
+            const isFailed = job.state === EXTRACT_STATE_FAILED;
+            const isDone = job.state === EXTRACT_STATE_COMPLETED;
+            const title = isFailed ? 'Extraction failed' : isDone ? 'Extracted' : 'Extracting';
+            const borderTone = isFailed ? 'border-red-500/30 bg-red-500/10' : isDone ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-yellow-500/30 bg-yellow-500/10';
+            const barTone = isFailed ? 'bg-red-400' : isDone ? 'bg-emerald-400' : 'bg-yellow-400';
+
+            return (
+              <div key={job.id} className={`rounded-2xl border p-4 ${borderTone}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="rounded-xl bg-black/30 p-2 text-yellow-300">
+                      <FileArchive className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate font-semibold text-white">{title} {job.folder_name}</div>
+                      <div className="truncate text-sm text-zinc-300">{job.error || job.message || job.final_path}</div>
+                    </div>
+                  </div>
+                  <div className="text-right text-sm font-medium text-zinc-200">
+                    <div className="capitalize">{String(job.state_text || '').replace('_', ' ')}</div>
+                    {percent !== null && <div className="text-xs text-zinc-400">{formatBytes(job.bytes_transfered)} / {formatBytes(job.bytes_to_download)}</div>}
+                  </div>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/40">
+                  <div className={`h-full rounded-full transition-all ${barTone}`} style={{ width: `${isDone ? 100 : percent || 8}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl">
           {error}
@@ -245,6 +464,7 @@ const FileManagerView = ({ isRemote = false }) => {
         files={files} 
         isLoading={loading}
         currentPath={currentPath}
+        siteIdx={selectedSite === -1 ? null : selectedSite}
         onNavigate={handleNavigate}
         onFileClick={(file) => setSelectedFileForAction(file)}
       />

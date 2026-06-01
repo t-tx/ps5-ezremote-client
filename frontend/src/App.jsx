@@ -15,11 +15,11 @@ import './App.css'
 
 // Utilities
 import { cn, isPS5 } from './utils/helpers'
-import { getDaemonUrl, getMainUrl, getDirectMainUrl, getDirectDaemonUrl } from './config'
+import { getMainUrl, getDirectDaemonUrl } from './config'
 import { useGamepad } from './utils/useGamepad'
 
 // UI Components
-import Toast from './components/ui/Toast'
+import { Toaster, toast } from 'react-hot-toast';
 import NavButton from './components/ui/NavButton'
 import LogoIcon from './components/ui/LogoIcon'
 
@@ -29,21 +29,53 @@ import SpeedTestView from './views/SpeedTestView'
 import LogsView from './views/LogsView'
 import MetricsView from './views/MetricsView'
 
+const VIEW_STORAGE_KEY = 'ezremote.activeView'
+const DEFAULT_VIEW = 'files'
+const VALID_VIEWS = new Set(['files', 'remote', 'speed', 'logs', 'metrics', 'donate'])
+
+const clearSavedView = () => {
+  try {
+    window.localStorage.removeItem(VIEW_STORAGE_KEY)
+  } catch {
+    // localStorage can be unavailable in embedded or private browser modes.
+  }
+}
+
+const readSavedView = () => {
+  try {
+    const savedView = window.localStorage.getItem(VIEW_STORAGE_KEY)
+    if (VALID_VIEWS.has(savedView)) return savedView
+    if (savedView) clearSavedView()
+  } catch {
+    clearSavedView()
+  }
+  return DEFAULT_VIEW
+}
+
+const saveView = (nextView) => {
+  try {
+    window.localStorage.setItem(VIEW_STORAGE_KEY, nextView)
+  } catch {
+    // View persistence is optional; navigation should still work without it.
+  }
+}
+
 function App() {
-  const [view, setView] = useState('files')
+  const [view, setView] = useState(readSavedView)
   const [sidebarExpanded, setSidebarExpanded] = useState(true)
-  const [ip, setIp] = useState(window.location.hostname)
+  const [ip] = useState(window.location.hostname)
   const [version, setVersion] = useState('1.0.0')
-  const [toasts, setToasts] = useState([])
 
-  const addToast = (message, type = 'success') => {
-    const id = Date.now()
-    setToasts(prev => [...prev, { id, message, type }])
+  const setActiveView = (nextView) => {
+    if (!VALID_VIEWS.has(nextView)) {
+      clearSavedView()
+      setView(DEFAULT_VIEW)
+      return
+    }
+    saveView(nextView)
+    setView(nextView)
   }
 
-  const removeToast = (id) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
-  }
 
   useGamepad({
     onL1: () => {
@@ -69,7 +101,9 @@ function App() {
       try {
         const verRes = await fetch(getDirectDaemonUrl('/version')).then(r => r.text())
         if (!verRes.toLowerCase().includes('<!doctype')) setVersion(verRes)
-      } catch (e) {}
+      } catch {
+        // The daemon may be offline during early page load; keep the fallback version.
+      }
     }
     init()
   }, [])
@@ -79,12 +113,16 @@ function App() {
       "min-h-screen min-h-[100dvh] ps5-bg text-zinc-100 font-ps5 flex",
       isPS5 ? "flex-row overflow-hidden" : "flex-col md:flex-row md:overflow-hidden"
     )}>
-      {/* Toast Container */}
-      <div className="fixed top-0 right-0 p-8 z-[2000] space-y-4 pointer-events-none">
-        {toasts.map(t => (
-          <Toast key={t.id} message={t.message} type={t.type} onClose={() => removeToast(t.id)} />
-        ))}
-      </div>
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: '#18181b',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }
+        }}
+      />
 
       <aside className={cn(
         "flex-col bg-black/40 border-r border-white/5 transition-all duration-500 z-[100] h-screen",
@@ -109,11 +147,11 @@ function App() {
           </div>
 
           <nav className="flex-1 space-y-2">
-            <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'files'} onClick={() => setView('files')} icon={FolderOpen} label="Local Files" />
-            <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'remote'} onClick={() => setView('remote')} icon={Globe} label="Remote Sites" />
-            <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'speed'} onClick={() => setView('speed')} icon={Activity} label="Speed Tests" />
-            <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'logs'} onClick={() => setView('logs')} icon={Terminal} label="Logs" />
-            <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'metrics'} onClick={() => setView('metrics')} icon={Activity} label="Telemetry" />
+            <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'files'} onClick={() => setActiveView('files')} icon={FolderOpen} label="Local Files" />
+            <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'remote'} onClick={() => setActiveView('remote')} icon={Globe} label="Remote Sites" />
+            <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'speed'} onClick={() => setActiveView('speed')} icon={Activity} label="Speed Tests" />
+            <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'logs'} onClick={() => setActiveView('logs')} icon={Terminal} label="Logs" />
+            <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'metrics'} onClick={() => setActiveView('metrics')} icon={Activity} label="Telemetry" />
           </nav>
 
           <div className="pt-6 border-t border-white/5 space-y-2">
@@ -126,7 +164,7 @@ function App() {
               sidebar
               sidebarExpanded={sidebarExpanded}
               active={view === 'donate'}
-              onClick={() => setView('donate')}
+              onClick={() => setActiveView('donate')}
               icon={Heart}
               label="Donate"
               className={view === 'donate' ? "bg-red-600" : "text-red-500 hover:bg-red-600/10"}
@@ -139,10 +177,10 @@ function App() {
                 if (confirm('Are you sure you want to restart the background daemon? This will stop any ongoing background downloads or tasks.')) {
                   try {
                     const res = await fetch(getMainUrl('/__local__/restart_daemon'));
-                    if (res.ok) alert('Daemon restart initiated.');
-                    else alert('Failed to initiate restart.');
-                  } catch (e) {
-                    alert('Network error while requesting restart.');
+                    if (res.ok) toast.success('Daemon restart initiated.');
+                    else toast.error('Failed to initiate restart.');
+                  } catch {
+                    toast.error('Network error while requesting restart.');
                   }
                 }
               }}
@@ -159,10 +197,10 @@ function App() {
         "fixed bottom-0 inset-x-0 z-[100] bg-black/80 border-t border-white/5 h-[calc(5rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] flex items-center",
         isPS5 ? "hidden" : "md:hidden"
       )}>
-        <NavButton active={view === 'files'} onClick={() => setView('files')} icon={FolderOpen} label="Local" mobileLabel="LOCAL" />
-        <NavButton showSeparator active={view === 'remote'} onClick={() => setView('remote')} icon={Globe} label="Remote" mobileLabel="REMOTE" />
-        <NavButton showSeparator active={view === 'speed'} onClick={() => setView('speed')} icon={Activity} label="Speed" mobileLabel="SPEED" />
-        <NavButton showSeparator active={view === 'logs'} onClick={() => setView('logs')} icon={Terminal} label="Logs" mobileLabel="LOGS" />
+        <NavButton active={view === 'files'} onClick={() => setActiveView('files')} icon={FolderOpen} label="Local" mobileLabel="LOCAL" />
+        <NavButton showSeparator active={view === 'remote'} onClick={() => setActiveView('remote')} icon={Globe} label="Remote" mobileLabel="REMOTE" />
+        <NavButton showSeparator active={view === 'speed'} onClick={() => setActiveView('speed')} icon={Activity} label="Speed" mobileLabel="SPEED" />
+        <NavButton showSeparator active={view === 'logs'} onClick={() => setActiveView('logs')} icon={Terminal} label="Logs" mobileLabel="LOGS" />
       </nav>
 
       {/* MAIN CONTENT AREA */}

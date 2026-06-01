@@ -63,6 +63,7 @@ Other targets:
 - For C/C++ changes, run `make build` when the SDK and dependencies are available.
 - For package/release checks, run `cmake --build build --target package` after a successful build.
 - For web UI-only changes under `data/assets/`, at minimum check JavaScript/CSS syntax manually and preserve existing `/__local__/...` API contracts.
+- For frontend asset deployment, use `make deploy-frontend` when the user asks to deploy the frontend, instead of manually copying `frontend/dist` into `data/assets`.
 
 ## Existing Project Rules
 

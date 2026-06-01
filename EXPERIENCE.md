@@ -73,4 +73,54 @@ Do not embed the asset basename in the FTP URL. Compute the remote directory fro
 
 ---
 
+## 6. Frontend Build Fails Because `npm` Is Not On PATH
+
+### The Failure Attempt
+Running `npm run build` directly from `frontend/` in the dev container.
+
+### The Pattern / Symptom
+The shell fails immediately with `npm: command not found`, even though the repository includes frontend dependencies and build targets.
+
+### The Solution
+Use the vendored Node install before running frontend commands:
+```bash
+export PATH="/workspace/node-v22.14.0-linux-x64/bin:$PATH" && npm run build
+```
+This matches the `Makefile` frontend target and allows Vite to build successfully.
+
+---
+
+## 7. React Hooks Lint Rejects Synchronous State Reset In Effects
+
+### The Failure Attempt
+Resetting component state synchronously inside `useEffect` before starting an async browser fetch, such as `setIconUrl(cachedIcon)` followed by a `fetch(...).then(...)` update.
+
+### The Pattern / Symptom
+`eslint-plugin-react-hooks` reports `react-hooks/set-state-in-effect` and rejects the component even though the production Vite build succeeds. A full `npm run lint` can also surface unrelated existing lint debt elsewhere in the frontend.
+
+### The Solution
+Initialize state from synchronous cache reads in the `useState` initializer and key the rendered item by path/site so it remounts cleanly when the file changes. Only call `setState` from async callbacks or event handlers. When full-project lint is blocked by unrelated existing issues, verify touched files directly, for example:
+```bash
+export PATH="/workspace/node-v22.14.0-linux-x64/bin:$PATH" && npx eslint src/components/FileManager/FileList.jsx
+```
+
+---
+
+## 8. Dirty Worktree Makes Full `git diff --check` Fail
+
+### The Failure Attempt
+Running `git diff --check` after fixing the files touched by the current task.
+
+### The Pattern / Symptom
+The command can still fail on trailing whitespace that belongs to unrelated pre-existing worktree changes. This makes the full dirty-tree check noisy even when the current task files are clean.
+
+### The Solution
+Do not clean up unrelated user changes just to satisfy the full-tree check. Run a scoped check for the files touched by the current task, for example:
+```bash
+git diff --check -- path/to/file1 path/to/file2
+```
+Report any remaining full-tree failures as pre-existing or unrelated if they are outside the task scope.
+
+---
+
 *(Add new failure patterns and solutions here as they are discovered)*

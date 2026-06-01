@@ -9,6 +9,8 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <errno.h>
+#include <string.h>
 #include <json-c/json.h>
 #include <server/range_parser.h>
 #include "http/httplib.h"
@@ -55,6 +57,458 @@ bool web_server_enabled = false;
 
 namespace HttpServer
 {
+    static const char *EXTRACT_STAGING_ROOT = "/data/extracting";
+
+    enum ExtractJobState
+    {
+        EXTRACT_STATE_PENDING = 0,
+        EXTRACT_STATE_IN_PROGRESS = 1,
+        EXTRACT_STATE_COMPLETED = 2,
+        EXTRACT_STATE_FAILED = 3
+    };
+
+    struct ExtractJob
+    {
+        uint64_t id;
+        int site_idx;
+        std::string item;
+        std::string folder_name;
+        std::string staging_path;
+        std::string final_path;
+        std::string message;
+        std::string error;
+        uint64_t bytes_transfered;
+        uint64_t bytes_to_download;
+        uint64_t started_at;
+        uint64_t finished_at;
+        ExtractJobState state;
+    };
+
+    struct ExtractThreadArgs
+    {
+        uint64_t id;
+        int site_idx;
+        std::string item;
+        std::string folder_name;
+        std::string staging_path;
+        std::string final_path;
+    };
+
+    static std::mutex extract_jobs_mutex;
+    static std::vector<ExtractJob> extract_jobs;
+
+    static const char *ExtractStateText(ExtractJobState state)
+    {
+        switch (state)
+        {
+        case EXTRACT_STATE_PENDING:
+            return "pending";
+        case EXTRACT_STATE_IN_PROGRESS:
+            return "in_progress";
+        case EXTRACT_STATE_COMPLETED:
+            return "completed";
+        case EXTRACT_STATE_FAILED:
+            return "failed";
+        default:
+            return "unknown";
+        }
+    }
+
+    static std::string JoinPath(const std::string &base, const std::string &name)
+    {
+        if (base.empty() || base == "/")
+            return "/" + name;
+        return base + (FS::hasEndSlash(base.c_str()) ? "" : "/") + name;
+    }
+
+    static std::string BaseName(const std::string &path)
+    {
+        size_t end = path.find_last_not_of('/');
+        if (end == std::string::npos)
+            return "extract";
+
+        size_t slash = path.find_last_of('/', end);
+        if (slash == std::string::npos)
+            return path.substr(0, end + 1);
+        return path.substr(slash + 1, end - slash);
+    }
+
+    static std::string StripArchiveExtension(const std::string &name)
+    {
+        std::string lower = Util::ToLower(name);
+        const char *extensions[] = {".tar.gz", ".tar.xz", ".tar.bz2", ".zip", ".rar", ".7z", ".gz", ".xz", ".bz2"};
+        for (size_t i = 0; i < sizeof(extensions) / sizeof(extensions[0]); i++)
+        {
+            std::string ext = extensions[i];
+            if (lower.length() > ext.length() && lower.compare(lower.length() - ext.length(), ext.length(), ext) == 0)
+                return name.substr(0, name.length() - ext.length());
+        }
+
+        size_t dot = name.find_last_of('.');
+        if (dot != std::string::npos && dot > 0)
+            return name.substr(0, dot);
+        return name;
+    }
+
+    static std::string SanitizeExtractFolderName(const std::string &requested, const std::string &item)
+    {
+        std::string source = requested.empty() ? StripArchiveExtension(BaseName(item)) : requested;
+        std::string out;
+        out.reserve(source.length());
+
+        for (size_t i = 0; i < source.length() && out.length() < 180; i++)
+        {
+            unsigned char c = static_cast<unsigned char>(source[i]);
+            if (source[i] == '/' || source[i] == '\\' || c < 32)
+                out.push_back('_');
+            else
+                out.push_back(source[i]);
+        }
+
+        while (!out.empty() && (out[0] == ' ' || out[0] == '.'))
+            out.erase(out.begin());
+        while (!out.empty() && out[out.length() - 1] == ' ')
+            out.erase(out.end() - 1);
+
+        if (out.empty() || out == "." || out == "..")
+            out = "extract";
+        return out;
+    }
+
+    static bool IsSafeAbsolutePath(const std::string &path)
+    {
+        if (path.empty() || path[0] != '/')
+            return false;
+        if (path.find("/../") != std::string::npos)
+            return false;
+        if (path.length() >= 3 && path.compare(path.length() - 3, 3, "/..") == 0)
+            return false;
+        return true;
+    }
+
+    static void UpdateExtractJob(uint64_t id, ExtractJobState state, const std::string &message, const std::string &error, bool finished)
+    {
+        std::lock_guard<std::mutex> lock(extract_jobs_mutex);
+        for (auto &job : extract_jobs)
+        {
+            if (job.id == id)
+            {
+                job.state = state;
+                job.message = message;
+                job.error = error;
+                job.bytes_transfered = bytes_transfered;
+                job.bytes_to_download = bytes_to_download;
+                if (finished)
+                    job.finished_at = Util::GetTick();
+                return;
+            }
+        }
+    }
+
+    static void ResetExtractState()
+    {
+        {
+            std::lock_guard<std::mutex> lock(extract_jobs_mutex);
+            extract_jobs.clear();
+        }
+
+        bool prev_stop_activity = stop_activity;
+        stop_activity = false;
+        if (FS::FolderExists(EXTRACT_STAGING_ROOT) || FS::FileExists(EXTRACT_STAGING_ROOT))
+            FS::RmRecursive(EXTRACT_STAGING_ROOT);
+        FS::MkDirs(EXTRACT_STAGING_ROOT);
+        stop_activity = prev_stop_activity;
+    }
+
+    static void SetExtractGlobals(bool in_progress, const std::string &message)
+    {
+        activity_inprogess = in_progress;
+        file_transfering = in_progress;
+        if (in_progress)
+        {
+            stop_activity = false;
+            bytes_transfered = 0;
+            bytes_to_download = 0;
+            prev_tick = Util::GetTick();
+            snprintf(status_message, 1024, "%s", "");
+            snprintf(activity_message, 1024, "%s", message.c_str());
+            Windows::SetModalMode(true);
+        }
+        else
+        {
+            Windows::SetModalMode(false);
+        }
+    }
+
+    static void *ExtractJobThread(void *argp)
+    {
+        dbglogger_log("Thread ExtractJobThread started.");
+        pthread_detach(pthread_self());
+
+        ExtractThreadArgs *args = static_cast<ExtractThreadArgs *>(argp);
+        uint64_t id = args->id;
+        std::string item = args->item;
+        std::string folder_name = args->folder_name;
+        std::string staging_path = args->staging_path;
+        std::string final_path = args->final_path;
+        int site_idx = args->site_idx;
+        delete args;
+
+        UpdateExtractJob(id, EXTRACT_STATE_IN_PROGRESS, "Preparing extraction", "", false);
+        snprintf(activity_message, 1024, "Extracting %s", folder_name.c_str());
+        FS::MkDirs(EXTRACT_STAGING_ROOT);
+        if (FS::FolderExists(staging_path) || FS::FileExists(staging_path))
+            FS::RmRecursive(staging_path);
+        FS::MkDirs(staging_path);
+
+        DirEntry entry;
+        memset(&entry, 0, sizeof(entry));
+        snprintf(entry.name, sizeof(entry.name), "%s", BaseName(item).c_str());
+        snprintf(entry.path, sizeof(entry.path), "%s", item.c_str());
+        entry.isDir = false;
+
+        RemoteClient *client = nullptr;
+        int ret = 0;
+        if (site_idx >= 0)
+        {
+            client = GetPooledClient(site_idx);
+            if (client == nullptr || !client->IsConnected())
+            {
+                if (client != nullptr)
+                    ReleasePooledClient(site_idx, client);
+                std::string error = "Failed to connect to remote site";
+                UpdateExtractJob(id, EXTRACT_STATE_FAILED, error, error, true);
+                if (FS::FolderExists(staging_path) || FS::FileExists(staging_path))
+                    FS::RmRecursive(staging_path);
+                SetExtractGlobals(false, "");
+                selected_action = ACTION_REFRESH_LOCAL_FILES;
+                Util::Notify("%s", error.c_str());
+                return NULL;
+            }
+            ret = ZipUtil::Extract(entry, staging_path, client);
+            ReleasePooledClient(site_idx, client);
+        }
+        else
+        {
+            ret = ZipUtil::Extract(entry, staging_path);
+        }
+
+        if (stop_activity)
+        {
+            std::string error = "Extraction cancelled";
+            UpdateExtractJob(id, EXTRACT_STATE_FAILED, error, error, true);
+            stop_activity = false;
+            if (FS::FolderExists(staging_path) || FS::FileExists(staging_path))
+                FS::RmRecursive(staging_path);
+            SetExtractGlobals(false, "");
+            selected_action = ACTION_REFRESH_LOCAL_FILES;
+            Util::Notify("%s", error.c_str());
+            return NULL;
+        }
+
+        if (ret <= 0)
+        {
+            std::string error = ret == -1 ? "Unsupported compressed file format" : "Failed to extract file";
+            if (strlen(status_message) > 0)
+                error = status_message;
+            UpdateExtractJob(id, EXTRACT_STATE_FAILED, error, error, true);
+            if (FS::FolderExists(staging_path) || FS::FileExists(staging_path))
+                FS::RmRecursive(staging_path);
+            SetExtractGlobals(false, "");
+            selected_action = ACTION_REFRESH_LOCAL_FILES;
+            Util::Notify("Failed to extract %s", folder_name.c_str());
+            return NULL;
+        }
+
+        if (FS::FolderExists(final_path) || FS::FileExists(final_path))
+        {
+            std::string error = "Destination already exists: " + final_path;
+            UpdateExtractJob(id, EXTRACT_STATE_FAILED, error, error, true);
+            if (FS::FolderExists(staging_path) || FS::FileExists(staging_path))
+                FS::RmRecursive(staging_path);
+            SetExtractGlobals(false, "");
+            selected_action = ACTION_REFRESH_LOCAL_FILES;
+            Util::Notify("%s", error.c_str());
+            return NULL;
+        }
+
+        FS::MkDirs(final_path, true);
+        errno = 0;
+        if (rename(staging_path.c_str(), final_path.c_str()) != 0)
+        {
+            std::string error = "Failed to move extracted directory: ";
+            error += strerror(errno);
+            UpdateExtractJob(id, EXTRACT_STATE_FAILED, error, error, true);
+            if (FS::FolderExists(staging_path) || FS::FileExists(staging_path))
+                FS::RmRecursive(staging_path);
+            SetExtractGlobals(false, "");
+            selected_action = ACTION_REFRESH_LOCAL_FILES;
+            Util::Notify("%s", error.c_str());
+            return NULL;
+        }
+
+        std::string done = "Extracted to " + final_path;
+        UpdateExtractJob(id, EXTRACT_STATE_COMPLETED, done, "", true);
+        snprintf(status_message, 1024, "%s", done.c_str());
+        SetExtractGlobals(false, "");
+        selected_action = ACTION_REFRESH_LOCAL_FILES;
+        Util::Notify("%s", done.c_str());
+        return NULL;
+    }
+
+    static bool StartExtractJob(int site_idx, const std::string &item, const std::string &destination, const std::string &requested_folder, std::string *error, uint64_t *job_id)
+    {
+        if (item.empty())
+        {
+            *error = "Required item parameter missing";
+            return false;
+        }
+
+        if (!IsSafeAbsolutePath(destination))
+        {
+            *error = "Invalid extraction destination";
+            return false;
+        }
+
+        if (site_idx >= 0 && (site_idx >= static_cast<int>(sites.size()) || site_settings[sites[site_idx]].server[0] == '\0'))
+        {
+            *error = "Invalid site_idx";
+            return false;
+        }
+
+        uint64_t id = Util::GetTick();
+        std::string folder_name = SanitizeExtractFolderName(requested_folder, item);
+        std::string staging_path = JoinPath(EXTRACT_STAGING_ROOT, folder_name);
+        std::string final_path = JoinPath(destination, folder_name);
+
+        ExtractJob job;
+        job.id = id;
+        job.site_idx = site_idx;
+        job.item = item;
+        job.folder_name = folder_name;
+        job.staging_path = staging_path;
+        job.final_path = final_path;
+        job.message = "Queued";
+        job.error = "";
+        job.bytes_transfered = 0;
+        job.bytes_to_download = 0;
+        job.started_at = id;
+        job.finished_at = 0;
+        job.state = EXTRACT_STATE_PENDING;
+
+        {
+            std::lock_guard<std::mutex> lock(extract_jobs_mutex);
+            bool active_extract = activity_inprogess;
+            for (const auto &existing_job : extract_jobs)
+            {
+                if (existing_job.state == EXTRACT_STATE_PENDING || existing_job.state == EXTRACT_STATE_IN_PROGRESS)
+                {
+                    active_extract = true;
+                    break;
+                }
+            }
+
+            if (active_extract)
+            {
+                *error = lang_strings[STR_ACTIVITY_IN_PROGRESS_MSG];
+                return false;
+            }
+
+            extract_jobs.push_back(job);
+        }
+
+        SetExtractGlobals(true, "Queued extraction");
+
+        ExtractThreadArgs *args = new ExtractThreadArgs();
+        args->id = id;
+        args->site_idx = site_idx;
+        args->item = item;
+        args->folder_name = folder_name;
+        args->staging_path = staging_path;
+        args->final_path = final_path;
+
+        pthread_t extract_thread;
+        int res = pthread_create(&extract_thread, NULL, ExtractJobThread, args);
+        if (res != 0)
+        {
+            delete args;
+            SetExtractGlobals(false, "");
+            std::string thread_error = "Failed to start extraction thread";
+            UpdateExtractJob(id, EXTRACT_STATE_FAILED, thread_error, thread_error, true);
+            *error = thread_error;
+            return false;
+        }
+
+        *job_id = id;
+        return true;
+    }
+
+    static void ExtractStatusResponse(Response &res)
+    {
+        json_object *result = json_object_new_object();
+        json_object *jobs = json_object_new_array();
+
+        std::lock_guard<std::mutex> lock(extract_jobs_mutex);
+        for (auto &job : extract_jobs)
+        {
+            json_object *job_obj = json_object_new_object();
+            uint64_t job_bytes_transfered = job.bytes_transfered;
+            uint64_t job_bytes_to_download = job.bytes_to_download;
+            std::string job_message = job.message;
+
+            if (job.state == EXTRACT_STATE_IN_PROGRESS)
+            {
+                job_bytes_transfered = bytes_transfered;
+                job_bytes_to_download = bytes_to_download;
+                if (strlen(activity_message) > 0)
+                    job_message = activity_message;
+            }
+
+            json_object_object_add(job_obj, "id", json_object_new_uint64(job.id));
+            json_object_object_add(job_obj, "site_idx", json_object_new_int(job.site_idx));
+            json_object_object_add(job_obj, "item", json_object_new_string(job.item.c_str()));
+            json_object_object_add(job_obj, "folder_name", json_object_new_string(job.folder_name.c_str()));
+            json_object_object_add(job_obj, "staging_path", json_object_new_string(job.staging_path.c_str()));
+            json_object_object_add(job_obj, "final_path", json_object_new_string(job.final_path.c_str()));
+            json_object_object_add(job_obj, "state", json_object_new_int(job.state));
+            json_object_object_add(job_obj, "state_text", json_object_new_string(ExtractStateText(job.state)));
+            json_object_object_add(job_obj, "message", json_object_new_string(job_message.c_str()));
+            json_object_object_add(job_obj, "error", json_object_new_string(job.error.c_str()));
+            json_object_object_add(job_obj, "bytes_transfered", json_object_new_uint64(job_bytes_transfered));
+            json_object_object_add(job_obj, "bytes_to_download", json_object_new_uint64(job_bytes_to_download));
+            json_object_object_add(job_obj, "started_at", json_object_new_uint64(job.started_at / 1000000));
+            json_object_object_add(job_obj, "finished_at", json_object_new_uint64(job.finished_at / 1000000));
+            json_object_array_add(jobs, job_obj);
+        }
+
+        json_object_object_add(result, "success", json_object_new_boolean(true));
+        json_object_object_add(result, "error", json_object_new_null());
+        json_object_object_add(result, "extracting_dir", json_object_new_string(EXTRACT_STAGING_ROOT));
+        json_object_object_add(result, "jobs", jobs);
+
+        json_object *response = json_object_new_object();
+        json_object_object_add(response, "result", result);
+        const char *response_str = json_object_to_json_string(response);
+        res.status = 200;
+        res.set_content(response_str, strlen(response_str), "application/json");
+        json_object_put(response);
+    }
+
+    static void ExtractQueuedResponse(Response &res, uint64_t id)
+    {
+        json_object *result = json_object_new_object();
+        json_object_object_add(result, "success", json_object_new_boolean(true));
+        json_object_object_add(result, "error", json_object_new_null());
+        json_object_object_add(result, "id", json_object_new_uint64(id));
+
+        json_object *response = json_object_new_object();
+        json_object_object_add(response, "result", result);
+        const char *response_str = json_object_to_json_string(response);
+        res.status = 200;
+        res.set_content(response_str, strlen(response_str), "application/json");
+        json_object_put(response);
+    }
+
     std::string dump_headers(const Headers &headers)
     {
         std::string s;
@@ -229,6 +683,7 @@ namespace HttpServer
     {
     dbglogger_log("Thread ServerThread started.");
     pthread_detach(pthread_self());
+        ResetExtractState();
         auto serve_log_file = [&](const std::string& path, Response &res) {
             if (!FS::FileExists(path.c_str())) {
                 res.status = 404;
@@ -391,6 +846,118 @@ namespace HttpServer
             res.status = 200;
             res.set_content(results_str, strlen(results_str), "application/json");
             json_object_put(results);
+            json_object_put(jobj);
+        });
+
+        svr->Post("/api/sitedownloaddest", [&](const Request &req, Response &res) {
+            json_object *jobj = json_tokener_parse(req.body.c_str());
+            if (!jobj) { bad_request(res, "Invalid payload"); return; }
+            int site_idx = json_object_get_int(json_object_object_get(jobj, "site_idx"));
+            const char *path = json_object_get_string(json_object_object_get(jobj, "path"));
+            
+            RemoteClient *client = GetPooledClient(site_idx);
+            if (!client || !client->IsConnected()) {
+                if (client) ReleasePooledClient(site_idx, client);
+                json_object_put(jobj);
+                failed(res, 500, "Connection failed");
+                return;
+            }
+
+            uint64_t file_size = 0;
+            client->Size(path, &file_size);
+            ReleasePooledClient(site_idx, client);
+
+            if (site_idx < 0 || site_idx >= sites.size()) {
+                json_object_put(jobj);
+                failed(res, 500, "Invalid site_idx");
+                return;
+            }
+
+            RemoteSettings& s = site_settings[sites[site_idx]];
+            std::string path_str = path;
+            size_t last_slash = path_str.find_last_of('/');
+            std::string basename = (last_slash == std::string::npos) ? path_str : path_str.substr(last_slash + 1);
+            std::string dest = std::string("/data/homebrew/ezremote-client/") + basename;
+            
+            uint64_t id = Util::GetTick();
+            json_object *params = json_object_new_object();
+            json_object_object_add(params, "type", json_object_new_int(s.type));
+            json_object_object_add(params, "url", json_object_new_string(s.server));
+            json_object_object_add(params, "username", json_object_new_string(s.username));
+            json_object_object_add(params, "password", json_object_new_string(s.password));
+            json_object_object_add(params, "src_path", json_object_new_string(path));
+            json_object_object_add(params, "dest_path", json_object_new_string(dest.c_str()));
+            json_object_object_add(params, "size", json_object_new_uint64(file_size));
+            json_object_object_add(params, "id", json_object_new_uint64(id));
+            if (s.type == CLIENT_TYPE_HTTP_SERVER) {
+                json_object_object_add(params, "http_server_type", json_object_new_string(s.http_server_type));
+            }
+            
+            std::string params_payload = json_object_to_json_string(params);
+            
+            CHTTPClient::HttpResponse resp;
+            CHTTPClient::HeadersMap headers;
+            CHTTPClient tmp_client([](const std::string& log){});
+            tmp_client.InitSession(true, CHTTPClient::SettingsFlag::NO_FLAGS);
+            tmp_client.SetCertificateFile(CACERT_FILE);
+            headers["Content-Type"] = "application/json";
+
+            std::string download_url = std::string("http://localhost:") + std::to_string(http_int_server_port) + "/download_url";
+            bool success_flag = false;
+            if (tmp_client.Post(download_url, headers, params_payload.c_str(), resp)) {
+                if (HTTP_SUCCESS(resp.iCode)) {
+                    bool queued = true;
+                    if (!resp.strBody.empty()) {
+                        json_object *resp_obj = json_tokener_parse(resp.strBody.data());
+                        if (resp_obj) {
+                            json_object *result = json_object_object_get(resp_obj, "result");
+                            if (result) queued = json_object_get_boolean(json_object_object_get(result, "success"));
+                            json_object_put(resp_obj);
+                        }
+                    }
+                    if (queued) {
+                        Util::RichNotify(id, "%s queued for download", basename.c_str());
+                        success_flag = true;
+                    }
+                }
+            }
+            
+            json_object_put(params);
+            json_object_put(jobj);
+            
+            if (success_flag) {
+                success(res);
+            } else {
+                Util::RichNotify(id, "Failed to queue %s for download in background", basename.c_str());
+                failed(res, 500, "Failed to queue download");
+            }
+        });
+
+        svr->Post("/api/siteextract", [&](const Request &req, Response &res) {
+            json_object *jobj = json_tokener_parse(req.body.c_str());
+            if (!jobj) { bad_request(res, "Invalid payload"); return; }
+
+            json_object *site_obj = json_object_object_get(jobj, "site_idx");
+            const char *item = json_object_get_string(json_object_object_get(jobj, "item"));
+            const char *folderName = json_object_get_string(json_object_object_get(jobj, "folderName"));
+            if (site_obj == nullptr || item == nullptr)
+            {
+                bad_request(res, "Required site_idx or item parameter missing");
+                json_object_put(jobj);
+                return;
+            }
+
+            uint64_t job_id = 0;
+            std::string error;
+            int site_idx = json_object_get_int(site_obj);
+            if (!StartExtractJob(site_idx, item, "/data", folderName != nullptr ? folderName : "", &error, &job_id))
+            {
+                failed(res, 200, error);
+                json_object_put(jobj);
+                return;
+            }
+
+            ExtractQueuedResponse(res, job_id);
             json_object_put(jobj);
         });
 
@@ -583,10 +1150,12 @@ namespace HttpServer
                 std::string icon_path = std::string("/data/homebrew/ezremote-client/game-icons/") + title_id + ".png";
                 FS::MkDirs("/data/homebrew/ezremote-client/game-icons");
                 
-                if (client) {
-                    INSTALLER::ExtractRemotePkg(path, "/data/homebrew/ezremote-client/temp.sfo", icon_path);
-                } else {
-                    INSTALLER::ExtractLocalPkg(path, "/data/homebrew/ezremote-client/temp.sfo", icon_path);
+                if (!FS::FileExists(icon_path)) {
+                    if (client) {
+                        INSTALLER::ExtractRemotePkg(client, path, "/data/homebrew/ezremote-client/temp.sfo", icon_path);
+                    } else {
+                        INSTALLER::ExtractLocalPkg(path, "/data/homebrew/ezremote-client/temp.sfo", icon_path);
+                    }
                 }
 
                 if (FS::FileExists(icon_path)) {
@@ -1087,12 +1656,6 @@ namespace HttpServer
 
         svr->Post("/__local__/extract", [&](const Request &req, Response &res)
         {
-            if (activity_inprogess)
-            {
-                failed(res, 200, lang_strings[STR_ACTIVITY_IN_PROGRESS_MSG]);
-                return;
-            }
-
             const char* item;
             const char* destination;
             const char* folderName;
@@ -1117,20 +1680,27 @@ namespace HttpServer
                 return;
             }
 
-            std::string extract_zip_folder = std::string(destination) + "/" + folderName;
-            DirEntry entry;
-            sprintf(entry.name, "%s", "");
-            sprintf(entry.path, "%s", item);
-            entry.isDir = false;
-            FS::MkDirs(extract_zip_folder);
-            int ret = ZipUtil::Extract(entry, extract_zip_folder);
-            if (ret == 0)
-                failed(res, 200, "Failed to extract file");
-            else if (ret == -1)
-                failed(res, 200, "Unsupported compressed file format");
-            else
-                success(res);
+            uint64_t job_id = 0;
+            std::string error;
+            if (!StartExtractJob(-1, item, destination, folderName, &error, &job_id))
+            {
+                failed(res, 200, error);
+                json_object_put(jobj);
+                return;
+            }
+
+            ExtractQueuedResponse(res, job_id);
             json_object_put(jobj); });
+
+        svr->Get("/__local__/extract/status", [&](const Request &req, Response &res)
+        {
+            ExtractStatusResponse(res);
+        });
+
+        svr->Get("/api/extract/status", [&](const Request &req, Response &res)
+        {
+            ExtractStatusResponse(res);
+        });
 
         svr->Get("/__local__/uploadResumeSize", [&](const Request &req, Response &res)
         {

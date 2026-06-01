@@ -312,7 +312,7 @@ namespace Windows
         ImGuiStyle *style = &ImGui::GetStyle();
         ImVec4 *colors = style->Colors;
         static char title[256];
-        sprintf(title, "ezRemote %s (v1.2.33)", lang_strings[STR_CONNECTION_SETTINGS]);
+        sprintf(title, "ezRemote %s (v1.2.36)", lang_strings[STR_CONNECTION_SETTINGS]);
         BeginGroupPanel(title, ImVec2(1905, 100));
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
         char id[256];
@@ -2810,7 +2810,7 @@ namespace Windows
             selected_action = ACTION_NONE;
             break;
         case ACTION_VIEW_REMOTE_PKG:
-            if (INSTALLER::ExtractRemotePkg(selected_remote_file.path, TMP_SFO_PATH, TMP_ICON_PATH))
+            if (INSTALLER::ExtractRemotePkg(remoteclient, selected_remote_file.path, TMP_SFO_PATH, TMP_ICON_PATH))
             {
                 Textures::LoadImageFile(TMP_ICON_PATH, &texture);
                 sfo = FS::Load(TMP_SFO_PATH);

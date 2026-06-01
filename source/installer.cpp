@@ -961,7 +961,7 @@ namespace INSTALLER
 		if (!path.empty() && !title_id.empty()) {
 			std::string icon_path = std::string("/data/homebrew/ezremote-client/game-icons/") + title_id + ".png";
 			FS::MkDirs("/data/homebrew/ezremote-client/game-icons");
-			if (ExtractRemotePkg(path, TMP_SFO_PATH, icon_path)) {
+			if (ExtractRemotePkg(client, path, TMP_SFO_PATH, icon_path)) {
 				if (FS::FileExists(icon_path)) {
 					icon_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/game-icons/" + title_id + ".png";
 				}
@@ -1185,10 +1185,11 @@ namespace INSTALLER
 		return true;
 	}
 
-	bool ExtractRemotePkg(const std::string &path, const std::string sfo_path, const std::string icon_path)
-	{
-		pkg_header tmp_hdr;
-		if (!remoteclient->Head(path, &tmp_hdr, sizeof(pkg_header)))
+    bool ExtractRemotePkg(RemoteClient* client, const std::string &path, const std::string sfo_path, const std::string icon_path)
+    {
+        if (client == nullptr) return false;
+        pkg_header tmp_hdr;
+        if (!client->Head(path, &tmp_hdr, sizeof(pkg_header)))
 			return false;
 
 		if (BE32(tmp_hdr.pkg_magic) != PS4_PKG_MAGIC && BE32(tmp_hdr.pkg_magic) != PS5_PKG_MAGIC)
@@ -1201,7 +1202,7 @@ namespace INSTALLER
 		if (entry_table_data == nullptr)
 			return false;
 
-		if (!remoteclient->GetRange(path, entry_table_data, entry_table_size, entry_table_offset))
+		if (!client->GetRange(path, entry_table_data, entry_table_size, entry_table_offset))
 		{
 			free(entry_table_data);
 			return false;
@@ -1249,7 +1250,7 @@ namespace INSTALLER
 				free(param_sfo_data);
 				return false;
 			}
-			if (!remoteclient->GetRange(path, param_sfo_data, param_sfo_size, param_sfo_offset))
+			if (!client->GetRange(path, param_sfo_data, param_sfo_size, param_sfo_offset))
 			{
 				FS::Close(out);
 				free(param_sfo_data);
@@ -1272,7 +1273,7 @@ namespace INSTALLER
 				free(icon0_png_data);
 				return false;
 			}
-			if (!remoteclient->GetRange(path, icon0_png_data, icon0_png_size, icon0_png_offset))
+			if (!client->GetRange(path, icon0_png_data, icon0_png_size, icon0_png_offset))
 			{
 				FS::Close(out);
 				free(icon0_png_data);
@@ -1323,7 +1324,7 @@ namespace INSTALLER
 		if (!title_id.empty() && pkg_data && pkg_data->archive_entry && pkg_data->archive_entry->client_data && pkg_data->archive_entry->client_data->client) {
 			std::string icon_path = std::string("/data/homebrew/ezremote-client/game-icons/") + title_id + ".png";
 			FS::MkDirs("/data/homebrew/ezremote-client/game-icons");
-			ExtractRemotePkg(pkg_data->archive_entry->client_data->path, TMP_SFO_PATH, icon_path);
+			ExtractRemotePkg(pkg_data->archive_entry->client_data->client, pkg_data->archive_entry->client_data->path, TMP_SFO_PATH, icon_path);
 			if (FS::FileExists(icon_path)) {
 				icon_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/game-icons/" + title_id + ".png";
 			}
@@ -1442,7 +1443,7 @@ namespace INSTALLER
 		if (!title_id.empty() && pkg_data && pkg_data->remote_client) {
 			std::string icon_path = std::string("/data/homebrew/ezremote-client/game-icons/") + title_id + ".png";
 			FS::MkDirs("/data/homebrew/ezremote-client/game-icons");
-			ExtractRemotePkg(pkg_data->path, TMP_SFO_PATH, icon_path);
+			ExtractRemotePkg(pkg_data->remote_client, pkg_data->path, TMP_SFO_PATH, icon_path);
 			if (FS::FileExists(icon_path)) {
 				icon_url = std::string("http://") + GetLocalIP() + ":" + std::to_string(http_int_server_port) + "/game-icons/" + title_id + ".png";
 			}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Server, Cpu, Database, Activity, AlertTriangle } from 'lucide-react';
 import { cn } from '../utils/helpers';
+import { toast } from 'react-hot-toast';
 
 import { getDirectDaemonUrl, getMainUrl } from '../config';
 
@@ -107,10 +108,10 @@ const MetricsView = () => {
             if (confirm('Are you sure you want to restart the background daemon? This will stop any ongoing background downloads or tasks.')) {
               try {
                 const res = await fetch('/__local__/restart_daemon');
-                if (res.ok) alert('Daemon restart initiated.');
-                else alert('Failed to initiate restart.');
+                if (res.ok) toast.success('Daemon restart initiated.');
+                else toast.error('Failed to initiate restart.');
               } catch (e) {
-                alert('Network error while requesting restart.');
+                toast.error('Network error while requesting restart.');
               }
             }
           }}

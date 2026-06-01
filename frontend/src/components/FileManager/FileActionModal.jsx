@@ -1,9 +1,11 @@
 import React from 'react';
-import { X, Download, Trash2, Edit, Package, File } from 'lucide-react';
+import { X, Download, Trash2, Edit, Package, File, FileArchive } from 'lucide-react';
 import { cn } from '../../utils/helpers';
 
-const FileActionModal = ({ isOpen, file, isRemote, onClose, onDownload, onInstall, onRename, onDelete }) => {
+const FileActionModal = ({ isOpen, file, isRemote, onClose, onDownload, onExtract, onInstall, onRename, onDelete }) => {
   if (!isOpen || !file) return null;
+
+  const isExtractable = /\.(zip|rar|7z|tar\.gz|tar\.xz|tar\.bz2)$/i.test(file.name);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose}>
@@ -34,12 +36,21 @@ const FileActionModal = ({ isOpen, file, isRemote, onClose, onDownload, onInstal
 
           <div className="grid grid-cols-2 gap-3">
             {file.name.endsWith('.pkg') && (
-              <button 
+              <button
                 autoFocus
                 onClick={() => { onClose(); onInstall(file); }}
                 className="col-span-2 flex items-center justify-center gap-2 p-4 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-xl font-bold transition-all border border-purple-500/30 hover:border-purple-500/50"
               >
                 <Package className="w-5 h-5" /> Install PKG
+              </button>
+            )}
+
+            {isExtractable && (
+              <button
+                onClick={() => { onClose(); onExtract(file); }}
+                className="col-span-2 flex items-center justify-center gap-2 p-4 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded-xl font-bold transition-all border border-yellow-500/30 hover:border-yellow-500/50"
+              >
+                <FileArchive className="w-5 h-5" /> Extract to /data/
               </button>
             )}
             

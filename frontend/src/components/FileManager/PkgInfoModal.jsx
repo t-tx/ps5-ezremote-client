@@ -1,9 +1,9 @@
 import React from 'react';
-import { X, PlayCircle, HardDrive, Hash, Shield } from 'lucide-react';
+import { X, PlayCircle, HardDrive, Hash, Shield, Tag, Package, FileCode } from 'lucide-react';
 import { cn } from '../../utils/helpers';
 import { getMainUrl } from '../../config';
 
-const PkgInfoModal = ({ isOpen, onClose, onInstall, pkgInfo, fileName, isRemote }) => {
+const PkgInfoModal = ({ isOpen, onClose, onInstall, pkgInfo, fileName, isRemote, isLoading }) => {
   if (!isOpen) return null;
 
   return (
@@ -28,19 +28,26 @@ const PkgInfoModal = ({ isOpen, onClose, onInstall, pkgInfo, fileName, isRemote 
           </button>
 
           <div className="flex flex-col items-center mt-4">
-            <div className="relative w-32 h-32 mb-6 rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black/50">
-              {pkgInfo?.ICON_URL ? (
-                <img 
-                  src={getMainUrl(pkgInfo.ICON_URL)} 
-                  alt="Game Icon" 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white/30">
-                  <PlayCircle className="w-12 h-12" />
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-12 h-12 border-4 border-ps-blue border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-zinc-400 font-medium">Extracting PKG Information...</p>
+              </div>
+            ) : (
+              <>
+                <div className="relative w-32 h-32 mb-6 rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black/50">
+                  {pkgInfo?.ICON_URL ? (
+                    <img 
+                      src={getMainUrl(pkgInfo.ICON_URL)} 
+                      alt="Game Icon" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white/30">
+                      <PlayCircle className="w-12 h-12" />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
             <h2 className="text-2xl font-bold text-white text-center mb-1 drop-shadow-md">
               {pkgInfo?.TITLE || fileName}
@@ -69,6 +76,30 @@ const PkgInfoModal = ({ isOpen, onClose, onInstall, pkgInfo, fileName, isRemote 
                   <span className="text-white font-medium">{pkgInfo.VERSION}</span>
                 </div>
               )}
+              {pkgInfo?.CATEGORY && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-zinc-400 flex items-center gap-2">
+                    <Tag className="w-4 h-4" /> Category
+                  </span>
+                  <span className="text-white font-medium">{pkgInfo.CATEGORY}</span>
+                </div>
+              )}
+              {pkgInfo?.CONTENT_ID && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-zinc-400 flex items-center gap-2">
+                    <Package className="w-4 h-4" /> Content ID
+                  </span>
+                  <span className="text-white font-medium text-xs truncate max-w-[150px]" title={pkgInfo.CONTENT_ID}>{pkgInfo.CONTENT_ID}</span>
+                </div>
+              )}
+              {pkgInfo?.FORMAT && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-zinc-400 flex items-center gap-2">
+                    <FileCode className="w-4 h-4" /> Format
+                  </span>
+                  <span className="text-white font-medium">{pkgInfo.FORMAT}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-sm">
                 <span className="text-zinc-400 flex items-center gap-2">
                   <HardDrive className="w-4 h-4" /> Source
@@ -93,6 +124,8 @@ const PkgInfoModal = ({ isOpen, onClose, onInstall, pkgInfo, fileName, isRemote 
                 Install
               </button>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>
