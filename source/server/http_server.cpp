@@ -381,6 +381,12 @@ namespace HttpServer
         std::string staging_path = JoinPath(EXTRACT_STAGING_ROOT, folder_name);
         std::string final_path = JoinPath(destination, folder_name);
 
+        if (FS::FileExists(final_path) || FS::FolderExists(final_path))
+        {
+            *error = "EXISTS:" + final_path;
+            return false;
+        }
+
         ExtractJob job;
         job.id = id;
         job.site_idx = site_idx;
@@ -855,6 +861,25 @@ namespace HttpServer
             int site_idx = json_object_get_int(json_object_object_get(jobj, "site_idx"));
             const char *path = json_object_get_string(json_object_object_get(jobj, "path"));
             
+            bool isDir = false;
+            json_object *isDir_obj;
+            if (json_object_object_get_ex(jobj, "isDir", &isDir_obj)) {
+                isDir = json_object_get_boolean(isDir_obj);
+            }
+            const char *destination = json_object_get_string(json_object_object_get(jobj, "destination"));
+            std::string dest_dir = (destination != nullptr && destination[0] != '\0') ? destination : "/data";
+            
+            std::string path_str = path;
+            size_t last_slash = path_str.find_last_of('/');
+            std::string basename = (last_slash == std::string::npos) ? path_str : path_str.substr(last_slash + 1);
+            std::string dest = dest_dir + "/" + basename;
+            
+            if (FS::FileExists(dest) || FS::FolderExists(dest)) {
+                json_object_put(jobj);
+                failed(res, 200, "EXISTS:" + dest);
+                return;
+            }
+            
             RemoteClient *client = GetPooledClient(site_idx);
             if (!client || !client->IsConnected()) {
                 if (client) ReleasePooledClient(site_idx, client);
@@ -864,7 +889,7 @@ namespace HttpServer
             }
 
             uint64_t file_size = 0;
-            client->Size(path, &file_size);
+            if (!isDir) client->Size(path, &file_size);
             ReleasePooledClient(site_idx, client);
 
             if (site_idx < 0 || site_idx >= sites.size()) {
@@ -874,10 +899,6 @@ namespace HttpServer
             }
 
             RemoteSettings& s = site_settings[sites[site_idx]];
-            std::string path_str = path;
-            size_t last_slash = path_str.find_last_of('/');
-            std::string basename = (last_slash == std::string::npos) ? path_str : path_str.substr(last_slash + 1);
-            std::string dest = std::string("/data/homebrew/ezremote-client/") + basename;
             
             uint64_t id = Util::GetTick();
             json_object *params = json_object_new_object();
@@ -889,6 +910,7 @@ namespace HttpServer
             json_object_object_add(params, "dest_path", json_object_new_string(dest.c_str()));
             json_object_object_add(params, "size", json_object_new_uint64(file_size));
             json_object_object_add(params, "id", json_object_new_uint64(id));
+            json_object_object_add(params, "is_dir", json_object_new_boolean(isDir));
             if (s.type == CLIENT_TYPE_HTTP_SERVER) {
                 json_object_object_add(params, "http_server_type", json_object_new_string(s.http_server_type));
             }
@@ -985,6 +1007,52 @@ namespace HttpServer
                 file_size, "application/octet-stream",
                 [client, path](size_t offset, size_t length, DataSink &sink) {
                     return client->GetRange(path, sink, length, offset) == 0;
+                },
+                [client, site_idx](bool success) {
+                    ReleasePooledClient(site_idx, client);
+                });
+        });
+
+        svr->Get("/proxy_site/(\\d+)(/.*)", [&](const Request &req, Response &res) {
+            int site_idx = std::stoi(req.matches[1]);
+            if (site_idx < 0 || site_idx >= static_cast<int>(sites.size()) || site_settings[sites[site_idx]].server[0] == '\0') {
+                res.status = 404;
+                res.set_content("Site not found", "text/plain");
+                return;
+            }
+
+            std::string path = req.matches[2].str();
+            if (path.empty() || path == "/") {
+                res.status = 400;
+                res.set_content("Missing path", "text/plain");
+                return;
+            }
+
+            RemoteClient *client = GetPooledClient(site_idx);
+            if (!client || !client->IsConnected()) {
+                if (client) ReleasePooledClient(site_idx, client);
+                res.status = 500;
+                res.set_content("Connection failed", "text/plain");
+                return;
+            }
+
+            uint64_t file_size = 0;
+            if (!client->Size(path, &file_size)) {
+                ReleasePooledClient(site_idx, client);
+                res.status = 404;
+                res.set_content("Remote file not found", "text/plain");
+                return;
+            }
+
+            const char *content_type = "application/octet-stream";
+            if (path.length() >= 4 && path.substr(path.length() - 4) == ".png") {
+                content_type = "image/png";
+            }
+
+            res.set_content_provider(
+                file_size, content_type,
+                [client, path](size_t offset, size_t length, DataSink &sink) {
+                    return client->GetRange(path, sink, length, offset) == 1;
                 },
                 [client, site_idx](bool success) {
                     ReleasePooledClient(site_idx, client);
@@ -2499,6 +2567,16 @@ namespace HttpServer
         svr->Get("/__local__/restart_daemon", [&](const Request & /*req*/, Response & res) {
             Actions::RestartServer();
             res.set_content("{\"status\":\"restarting\"}", "application/json");
+        });
+
+        svr->Get("/__local__/stop_daemon", [&](const Request & /*req*/, Response & res) {
+            Actions::StopServer();
+            res.set_content("{\"status\":\"stopping\"}", "application/json");
+        });
+
+        svr->Get("/__local__/start_daemon", [&](const Request & /*req*/, Response & res) {
+            INSTALLER::StartEzRemoteServer();
+            res.set_content("{\"status\":\"starting\"}", "application/json");
         });
 
         svr->Get("/stop", [&](const Request & /*req*/, Response & /*res*/) {

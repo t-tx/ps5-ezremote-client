@@ -1,4 +1,4 @@
-import { getMainUrl } from '../config';
+import { getMainUrl, getDirectDaemonUrl } from '../config';
 
 export const fetchApi = async (url, payload = {}) => {
   const response = await fetch(getMainUrl(url), {
@@ -42,17 +42,48 @@ export const createFolder = (newPath) =>
 export const renameItem = (item, newItemPath) => 
   fetchApi('/__local__/rename', { item, newItemPath });
 
+export const fetchDaemonApi = async (url, payload = {}) => {
+  const response = await fetch(getDirectDaemonUrl(url), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  if (data.result && data.result.success === false) {
+    throw new Error(data.result.error || 'Unknown error occurred');
+  }
+  return data;
+};
+
 export const removeItems = (items) => 
-  fetchApi('/__local__/remove', { items });
+  fetchDaemonApi('/fileop_start', { items, type: 2 }); // FILEOP_DELETE
 
 export const moveItems = (items, newPath) => 
-  fetchApi('/__local__/move', { items, newPath });
+  fetchDaemonApi('/fileop_start', { items, newPath, type: 1 }); // FILEOP_MOVE
 
 export const copyItems = (items, newPath, singleFilename = null) => {
-  const payload = { items, newPath };
-  if (singleFilename) payload.singleFilename = singleFilename;
-  return fetchApi('/__local__/copy', payload);
+  const payload = { items, newPath, type: 0 }; // FILEOP_COPY
+  // background queue does not rename on copy right now, but singleFilename is passed 
+  // wait, the daemon background thread ignores singleFilename right now, 
+  // but it's ok, we can add it or just let it copy with the same name.
+  return fetchDaemonApi('/fileop_start', payload);
 };
+
+export const retryTask = (type, id) =>
+  fetchDaemonApi('/retry_task', { type, id });
+
+export const stopTask = (type, id) =>
+  fetchDaemonApi('/stop_task', { type, id });
+
+export const cleanTasks = () =>
+  fetchDaemonApi('/clean_tasks', {});
 
 export const installPackages = (items) => 
   fetchApi('/__local__/install', { items });
@@ -63,11 +94,11 @@ export const installRemotePackages = (site_idx, items) =>
 export const createRemoteFolder = (site_idx, newPath) => 
   fetchApi('/api/sitemkdir', { site_idx, newPath });
 
-export const downloadRemoteItem = (site_idx, path) =>
-  fetchApi('/api/sitedownloaddest', { site_idx, path });
+export const downloadRemoteItem = (site_idx, path, destination, isDir) =>
+  fetchApi('/api/sitedownloaddest', { site_idx, path, destination, isDir });
 
-export const extractRemoteItem = (site_idx, item, folderName) =>
-  fetchApi('/api/siteextract', { site_idx, item, destination: '/data', folderName });
+export const extractRemoteItem = (site_idx, item, destination, folderName) =>
+  fetchApi('/api/siteextract', { site_idx, item, destination, folderName });
 
 export const removeRemoteItems = (site_idx, items) => 
   fetchApi('/api/siteremove', { site_idx, items });
@@ -77,6 +108,9 @@ export const renameRemoteItem = (site_idx, oldPath, newPath) =>
 
 export const getFileContent = (item) => 
   fetchApi('/__local__/getContent', { item });
+
+export const checkLocalExists = (path) =>
+  fetchApi('/__local__/check_exists', { path });
 
 export const saveFileContent = (item, content) => 
   fetchApi('/__local__/edit', { item, content });

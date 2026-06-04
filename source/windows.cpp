@@ -83,6 +83,7 @@ bool set_focus_to_remote = false;
 bool select_url_inprogress = false;
 int favorite_url_idx = 0;
 char extract_zip_folder[256];
+char download_dest_folder[256];
 char zip_file_path[384];
 bool show_settings = false;
 bool show_bg_download_progress = false;
@@ -312,7 +313,7 @@ namespace Windows
         ImGuiStyle *style = &ImGui::GetStyle();
         ImVec4 *colors = style->Colors;
         static char title[256];
-        sprintf(title, "ezRemote %s (v1.2.36)", lang_strings[STR_CONNECTION_SETTINGS]);
+        sprintf(title, "ezRemote %s (v1.2.53)", lang_strings[STR_CONNECTION_SETTINGS]);
         BeginGroupPanel(title, ImVec2(1905, 100));
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
         char id[256];
@@ -1341,11 +1342,21 @@ namespace Windows
                 ImGui::PushID("Download##settings");
                 if (ImGui::Selectable(lang_strings[STR_DOWNLOAD], false, getSelectableFlag(REMOTE_ACTION_DOWNLOAD) | ImGuiSelectableFlags_DontClosePopups, ImVec2(220, 0)))
                 {
+                    sprintf(download_dest_folder, "%s", local_directory);
+                    if (strcmp(download_dest_folder, "/") == 0)
+                        sprintf(download_dest_folder, "/data");
+
+                    ime_single_field = download_dest_folder;
+                    ResetImeCallbacks();
+                    ime_field_size = 256;
+                    ime_after_update = AfterDownloadFolderCallback;
+                    ime_cancelled = CancelActionCallBack;
+                    ime_callback = SingleValueImeCallback;
+                    Dialog::initImeDialog(lang_strings[STR_DOWNLOAD], download_dest_folder, 256, SCE_IME_TYPE_DEFAULT, 1330, 350);
+                    gui_mode = GUI_MODE_IME;
+                    
                     SetModalMode(false);
-                    selected_action = ACTION_DOWNLOAD;
-                    file_transfering = true;
-                    confirm_transfer_state = 0;
-                    dont_prompt_overwrite_cb = dont_prompt_overwrite;
+                    selected_action = ACTION_NONE;
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::PopID();
@@ -2958,6 +2969,14 @@ namespace Windows
     void AfterPackageUrlCallback(int ime_result)
     {
         selected_action = ACTION_INSTALL_URL_PKG;
+    }
+
+    void AfterDownloadFolderCallback(int ime_result)
+    {
+        selected_action = ACTION_DOWNLOAD;
+        file_transfering = true;
+        confirm_transfer_state = 0;
+        dont_prompt_overwrite_cb = dont_prompt_overwrite;
     }
 
     void AfterExtractFolderCallback(int ime_result)

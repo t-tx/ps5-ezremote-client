@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { Folder, File, FileArchive, Package } from 'lucide-react';
+import { Folder, File, FileArchive, Package, CheckSquare, Square, Download, DownloadCloud, Link, Eye, Info } from 'lucide-react';
+import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 import { cn } from '../../utils/helpers';
 import { getMainUrl } from '../../config';
 import { getPkgInfo, listFiles, listRemoteFiles } from '../../utils/api';
@@ -12,7 +13,7 @@ const PREVIEW_GAP = 16;
 const PREVIEW_MARGIN = 16;
 const gameIconCache = new Map();
 const pkgIconCache = new Map();
-const directoryPreviewCache = new Map();
+export const directoryPreviewCache = new Map();
 
 const extractGameCode = (name) => {
   const match = String(name || '').match(/(^|[^A-Z0-9])([A-Z]{4}\d{5})(?=$|[^A-Z0-9])/i);
@@ -36,7 +37,7 @@ const getCachedIcon = (file, currentPath, siteIdx) => {
   return null;
 };
 
-const directoryPreviewKey = (file, currentPath, siteIdx) => `${siteIdx ?? 'local'}:${itemPath(currentPath, file)}`;
+export const directoryPreviewKey = (file, currentPath, siteIdx) => `${siteIdx ?? 'local'}:${itemPath(currentPath, file)}`;
 
 const normalizePreviewEntries = (entries) => {
   return entries.slice().sort((a, b) => {
@@ -46,6 +47,12 @@ const normalizePreviewEntries = (entries) => {
     name: entry.name || '',
     type: entry.type || 'file'
   }));
+};
+
+const hasPS5GameLayout = (entries) => {
+  const hasEboot = entries.some((entry) => entry?.type !== 'dir' && String(entry?.name || '').toLowerCase() === 'eboot.bin');
+  const hasSceSys = entries.some((entry) => entry?.type === 'dir' && String(entry?.name || '').toLowerCase() === 'sce_sys');
+  return hasEboot && hasSceSys;
 };
 
 const resolveDirectoryPreview = async (file, currentPath, siteIdx) => {
@@ -63,13 +70,16 @@ const resolveDirectoryPreview = async (file, currentPath, siteIdx) => {
       path,
       items: normalizePreviewEntries(entries),
       total: entries.length,
-      hasPkg: entries.some(isPkgFile)
+      hasPkg: entries.some(isPkgFile),
+      hasPS5Game: hasPS5GameLayout(entries)
     };
     directoryPreviewCache.set(key, preview);
+    window.dispatchEvent(new CustomEvent('directoryPreviewCacheUpdated'));
     return preview;
   } catch {
-    const preview = { status: 'error', path: itemPath(currentPath, file), items: [], total: 0, hasPkg: false };
+    const preview = { status: 'error', path: itemPath(currentPath, file), items: [], total: 0, hasPkg: false, hasPS5Game: false };
     directoryPreviewCache.set(key, preview);
+    window.dispatchEvent(new CustomEvent('directoryPreviewCacheUpdated'));
     return preview;
   }
 };
@@ -173,32 +183,24 @@ const useGameIcon = (file, currentPath, siteIdx) => {
   return [iconUrl, setIconUrl];
 };
 
-const useFolderContainsPkg = (file, currentPath, siteIdx) => {
-  const [containsPkg, setContainsPkg] = useState(() => {
-    if (file?.type !== 'dir') return false;
-    const cachedPreview = directoryPreviewCache.get(directoryPreviewKey(file, currentPath, siteIdx));
-    return cachedPreview?.status === 'ready' && cachedPreview.hasPkg === true;
-  });
+const useFolderContainsPkgOrPS5 = (file, currentPath, siteIdx, isIntersecting) => {
+  const [state, setState] = useState({ isPkg: false, isPS5Game: false, ps5IconUrl: null });
 
   useEffect(() => {
     let isActive = true;
-
-    if (file?.type !== 'dir') {
-      return () => {
-        isActive = false;
-      };
-    }
-
+    if (file?.type !== 'dir' || !isIntersecting) return;
     resolveDirectoryPreview(file, currentPath, siteIdx).then((preview) => {
-      if (isActive) setContainsPkg(preview?.status === 'ready' && preview.hasPkg === true);
+      if (!isActive) return;
+      if (preview?.status !== 'ready') return;
+      const isPkg = preview.hasPkg === true;
+      const isPS5Game = preview.hasPS5Game === true;
+      const ps5IconUrl = isPS5Game ? getMainUrl(`/proxy_site/${siteIdx}${preview.path}/sce_sys/icon0.png`) : null;
+      setState({ isPkg, isPS5Game, ps5IconUrl });
     });
+    return () => { isActive = false; };
+  }, [file, currentPath, siteIdx, isIntersecting]);
 
-    return () => {
-      isActive = false;
-    };
-  }, [file, currentPath, siteIdx]);
-
-  return containsPkg;
+  return state;
 };
 
 const PreviewEntryIcon = ({ entry, parentPath, siteIdx, onIconResolved }) => {
@@ -311,17 +313,20 @@ const GameIconPreview = ({ file, iconUrl, gameCode, position, directoryPreview, 
   );
 };
 
-const FileCard = ({ file, currentPath, siteIdx, formatSize, onNavigate, onFileClick }) => {
+const FileCard = memo(({ file, currentPath, siteIdx, formatSize, onNavigate, onFileClick }) => {
   const cardRef = useRef(null);
+  const [ref, isIntersecting] = useIntersectionObserver({ rootMargin: '200px' });
   const [iconUrl, setIconUrl] = useGameIcon(file, currentPath, siteIdx);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewPosition, setPreviewPosition] = useState(null);
   const [directoryPreview, setDirectoryPreview] = useState(null);
   const directoryPreviewRequestRef = useRef(0);
   const folderIconRetryRef = useRef(0);
-  const folderContainsPkg = useFolderContainsPkg(file, currentPath, siteIdx);
+  const { isPkg, isPS5Game, ps5IconUrl } = useFolderContainsPkgOrPS5(file, currentPath, siteIdx, isIntersecting);
   const gameCode = extractGameCode(file?.name);
-  const packageHighlight = isPkgFile(file) || folderContainsPkg;
+  const packageHighlight = isPkgFile(file) || isPkg;
+  const fileExtMatch = file.type !== 'dir' && file.name.match(/\.([a-z0-9]+)$/i);
+  const fileExt = fileExtMatch ? fileExtMatch[1].toUpperCase() : null;
 
   useEffect(() => {
     return () => {
@@ -360,9 +365,9 @@ const FileCard = ({ file, currentPath, siteIdx, formatSize, onNavigate, onFileCl
   };
 
   const updatePreviewPosition = () => {
-    if (!cardRef.current) return;
+    if (!ref.current) return;
     setPreviewPosition(previewPositionFor(
-      cardRef.current.getBoundingClientRect(),
+      ref.current.getBoundingClientRect(),
       file.type === 'dir' ? PREVIEW_FOLDER_HEIGHT : PREVIEW_FILE_HEIGHT
     ));
   };
@@ -396,9 +401,9 @@ const FileCard = ({ file, currentPath, siteIdx, formatSize, onNavigate, onFileCl
     if (!previewOpen) return undefined;
 
     const handlePreviewViewportChange = () => {
-      if (!cardRef.current) return;
+      if (!ref.current) return;
       setPreviewPosition(previewPositionFor(
-        cardRef.current.getBoundingClientRect(),
+        ref.current.getBoundingClientRect(),
         file.type === 'dir' ? PREVIEW_FOLDER_HEIGHT : PREVIEW_FILE_HEIGHT
       ));
     };
@@ -419,9 +424,37 @@ const FileCard = ({ file, currentPath, siteIdx, formatSize, onNavigate, onFileCl
     }
   };
 
+  const longPressTimer = useRef(null);
+  const isLongPress = useRef(false);
+
+  const handlePointerDown = () => {
+    isLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isLongPress.current = true;
+      if (file.type === 'dir') {
+        onFileClick(file);
+      }
+    }, 600);
+  };
+
+  const handlePointerUpOrCancel = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+      }
+    };
+  }, []);
+
   return (
     <div
-      ref={cardRef}
+      ref={ref}
       tabIndex="0"
       onMouseEnter={openPreview}
       onMouseLeave={closePreview}
@@ -429,36 +462,61 @@ const FileCard = ({ file, currentPath, siteIdx, formatSize, onNavigate, onFileCl
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) closePreview();
       }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUpOrCancel}
+      onPointerCancel={handlePointerUpOrCancel}
+      onPointerLeave={handlePointerUpOrCancel}
+      onContextMenu={(e) => {
+        if (file.type === 'dir') {
+          e.preventDefault();
+          onFileClick(file);
+        }
+      }}
       onKeyDown={(e) => handleKeyDown(e, () => file.type === 'dir' ? onNavigate(file.name) : onFileClick(file))}
       className={cn(
         "relative group flex items-center p-4 bg-ps-card rounded-2xl border border-ps-border transition-all duration-200 cursor-pointer",
         "hover:z-30 hover:bg-ps-blue/10 hover:border-ps-blue/50 focus:z-30 focus:outline-none focus:ring-4 focus:ring-ps-blue focus:bg-ps-blue/20 focus:scale-105",
-        packageHighlight && "border-purple-400/60 bg-purple-500/[0.06] shadow-[0_0_28px_rgba(168,85,247,0.20)]"
+        // Updated styling: blue border without shadow
+        packageHighlight && "border-ps-blue/60 bg-ps-blue/[0.06]" // pkg highlight
+            // PS5 game highlight: white border without shadow
+            || (isPS5Game && "border-white/60 bg-white/[0.06]")
       )}
       onClick={(e) => {
-        if (!e.defaultPrevented) {
+        if (!e.defaultPrevented && !isLongPress.current) {
           if (file.type === 'dir') onNavigate(file.name);
           else onFileClick(file);
         }
       }}
     >
       {packageHighlight && (
-        <>
-          <span className="pointer-events-none absolute inset-0 rounded-2xl border border-purple-300/70 opacity-70 shadow-[0_0_22px_rgba(216,180,254,0.36)] animate-pulse" />
-          <span className="pointer-events-none absolute left-5 top-0 h-px w-28 bg-gradient-to-r from-transparent via-purple-200 to-transparent opacity-90" />
-        </>
-      )}
-      <div className="flex-shrink-0 mr-4">
-        {iconUrl ? (
-          <img
-            src={iconUrl}
-            alt=""
-            className="w-10 h-10 rounded-lg object-cover border border-white/10 bg-black/30 shadow-lg"
-            onError={() => setIconUrl(null)}
-          />
-        ) : (
-          <FallbackIcon file={file} />
+          <>
+            <span className="pointer-events-none absolute inset-0 rounded-2xl border border-purple-300/70 opacity-70 shadow-[0_0_22px_rgba(216,180,254,0.36)] animate-pulse" />
+            <span className="pointer-events-none absolute left-5 top-0 h-px w-28 bg-gradient-to-r from-transparent via-purple-200 to-transparent opacity-90" />
+          </>
         )}
+        {isPS5Game && (
+          <span className="pointer-events-none absolute inset-0 rounded-2xl border border-white/70 opacity-70" />
+        )}
+      <div className="flex-shrink-0 mr-4">
+        {
+            // Prefer PS5 icon if available
+            ps5IconUrl ? (
+              <img
+                src={ps5IconUrl}
+                alt=""
+                className="w-16 h-16 rounded-lg object-cover border-2 border-white bg-black/30 shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                onError={() => setIconUrl(null)}
+              />
+            ) : iconUrl ? (
+              <img
+                src={iconUrl}
+                alt=""
+                className="w-16 h-16 rounded-lg object-cover border border-white/10 bg-black/30 shadow-lg"
+                onError={() => setIconUrl(null)}
+              />
+            ) : (
+              <FallbackIcon file={file} />
+            )}
       </div>
       <div className="flex-grow overflow-hidden">
         <h3 className={cn(
@@ -470,13 +528,19 @@ const FileCard = ({ file, currentPath, siteIdx, formatSize, onNavigate, onFileCl
         <div className="flex items-center text-sm text-zinc-400 mt-1 space-x-3">
           {file.type !== 'dir' && <span>{formatSize(file.size)}</span>}
           {packageHighlight && <span className="rounded-full bg-purple-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-purple-200">PKG</span>}
+          {isPS5Game && <span className="rounded-full border border-white/40 bg-ps-blue/90 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-[0_0_16px_rgba(0,149,255,0.65)] ml-1">PS5</span>}
+          {fileExt && !packageHighlight && (
+            <span className="rounded-full bg-yellow-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-yellow-200 ml-1">
+              {fileExt}
+            </span>
+          )}
           <span className="truncate">{file.date}</span>
         </div>
       </div>
       {previewOpen && <GameIconPreview file={file} iconUrl={iconUrl} gameCode={gameCode} position={previewPosition} directoryPreview={directoryPreview} siteIdx={siteIdx} onChildIconResolved={retryFolderIcon} />}
     </div>
   );
-};
+});
 
 const FileList = ({ files, isLoading, currentPath, siteIdx, onNavigate, onFileClick }) => {
 

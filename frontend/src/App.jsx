@@ -8,7 +8,8 @@ import {
   Terminal,
   Power,
   X,
-  Globe
+  Globe,
+  Layers
 } from 'lucide-react'
 
 import './App.css'
@@ -28,10 +29,11 @@ import FileManagerView from './views/FileManagerView'
 import SpeedTestView from './views/SpeedTestView'
 import LogsView from './views/LogsView'
 import MetricsView from './views/MetricsView'
+import BackgroundJobsView from './views/BackgroundJobsView'
 
 const VIEW_STORAGE_KEY = 'ezremote.activeView'
 const DEFAULT_VIEW = 'files'
-const VALID_VIEWS = new Set(['files', 'remote', 'speed', 'logs', 'metrics', 'donate'])
+const VALID_VIEWS = new Set(['files', 'remote', 'speed', 'logs', 'metrics', 'jobs', 'donate'])
 
 const clearSavedView = () => {
   try {
@@ -150,6 +152,7 @@ function App() {
             <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'files'} onClick={() => setActiveView('files')} icon={FolderOpen} label="Local Files" />
             <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'remote'} onClick={() => setActiveView('remote')} icon={Globe} label="Remote Sites" />
             <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'speed'} onClick={() => setActiveView('speed')} icon={Activity} label="Speed Tests" />
+            <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'jobs'} onClick={() => setActiveView('jobs')} icon={Layers} label="Background Jobs" />
             <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'logs'} onClick={() => setActiveView('logs')} icon={Terminal} label="Logs" />
             <NavButton sidebar sidebarExpanded={sidebarExpanded} active={view === 'metrics'} onClick={() => setActiveView('metrics')} icon={Activity} label="Telemetry" />
           </nav>
@@ -215,6 +218,7 @@ function App() {
           {view === 'files' && <FileManagerView key="local" isRemote={false} />}
           {view === 'remote' && <FileManagerView key="remote" isRemote={true} />}
           {view === 'speed' && <SpeedTestView />}
+          {view === 'jobs' && <BackgroundJobsView />}
           {view === 'logs' && <LogsView />}
           {view === 'metrics' && <MetricsView />}
           {view === 'donate' && (

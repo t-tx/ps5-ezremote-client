@@ -123,4 +123,64 @@ Report any remaining full-tree failures as pre-existing or unrelated if they are
 
 ---
 
+## 9. Frontend Lint Debt Can Prevent Build Verification
+
+### The Failure Attempt
+Running `npm run lint && npm run build` as a single frontend verification command.
+
+### The Pattern / Symptom
+The command stops at `npm run lint` because the current frontend has repo-wide lint debt, including unrelated `no-unused-vars`, React hooks, and config globals issues. As a result, `npm run build` never runs even when the changed files may still compile.
+
+### The Solution
+Run lint and build as separate checks. If lint fails on unrelated baseline issues, record the lint failure and still run the production build directly with the vendored Node path:
+```bash
+export PATH="/workspace/node-v22.14.0-linux-x64/bin:$PATH" && npm run build
+```
+
+---
+
+## 10. Full Build Can Fail In A Dirty Server Submodule
+
+### The Failure Attempt
+Running `make build` to verify a client-only change while `ps5-ezremote-server/` has unrelated local edits.
+
+### The Pattern / Symptom
+The main `ezremote_client.elf` may compile/link successfully, then the build fails later in `ps5-ezremote-server`, for example with `dbglogger_printf` undeclared or syntax/brace errors in `ps5-ezremote-server/source/clients/ftpclient.cpp`.
+
+### The Solution
+Do not modify or revert unrelated submodule changes just to verify the client edit. Record the full-build failure, then force a scoped rebuild of the touched client object and client target, for example:
+```bash
+ninja -C build -t clean CMakeFiles/ezremote_client.elf.dir/source/server/http_server.cpp.o && cmake --build build --target ezremote_client.elf
+```
+
+---
+
+## 11. Packaged Frontend Fixes When Node Is Missing
+
+### The Failure Attempt
+Running frontend verification or rebuild commands after changing `frontend/src/...` when neither system `npm`/`node` nor `/workspace/node-v22.14.0-linux-x64` exists.
+
+### The Pattern / Symptom
+`npm --version` and `node --version` fail with `command not found`, and the expected vendored Node path from the Makefile is absent. Source changes do not affect the PS5 web UI until `data/assets/index.html` is rebuilt or otherwise updated.
+
+### The Solution
+When a normal `make frontend` rebuild is impossible, patch the already-built generated assets only with tightly scoped, counted replacements, and verify that the old minified snippets are gone and the new snippets appear in both `frontend/dist/index.html` and `data/assets/index.html`. Avoid broad generated-asset edits, and prefer restoring the vendored Node runtime plus `make frontend` when available.
+
+When using Perl replacements on minified React code, escape literal `$` characters in replacement strings. Unescaped template literals such as `` `ex-${e.timestamp}-${t}` `` can collapse to broken keys like `` `ex--` `` because Perl treats `${...}` as interpolation. Verify key snippets after generated-asset patches.
+
+---
+
+## 12. Background Job Elapsed Time Continues After Failure
+
+### The Failure Attempt
+Calculating `elapsed_seconds` in `/get_download_state`, `/get_extract_state`, or `/get_fileop_state` as `now - timestamp` for every job state.
+
+### The Pattern / Symptom
+The Web UI shows elapsed time continuing to increase after a job has already failed or succeeded, for example `Elapsed 16m 58s` keeps counting on a failed download card.
+
+### The Solution
+Persist a terminal `finished_timestamp` for background downloads, extracts, and file operations. Set it whenever a job transitions to failed/success/cancelled, clear it on retry, and compute `elapsed_seconds` using `finished_timestamp - timestamp` for terminal states. For old persisted terminal jobs without `finished_timestamp`, default it to `timestamp` when loading so elapsed stops instead of growing forever.
+
+---
+
 *(Add new failure patterns and solutions here as they are discovered)*

@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <curl/curl.h>
 // #include <dbglogger.h>
 
 #include "imgui.h"
@@ -18,6 +21,8 @@
 #include "util.h"
 #include "textures.h"
 #include "dbglogger.h"
+#include "fs.h"
+#include "zip_util.h"
 
 extern "C"
 {
@@ -34,6 +39,195 @@ extern "C"
 // SDL window and software renderer
 SDL_Window *window;
 SDL_Renderer *renderer;
+
+static const char *BOOTSTRAP_PACKAGE_URL = "https://github.com/t-tx/ps5-ezremote-client/releases/download/v0.04/ezremote_client.zip";
+static const char *BOOTSTRAP_ZIP_NAME = "ezremote_client_bootstrap.zip";
+
+static std::string AppDataParentPath()
+{
+	std::string path(DATA_PATH);
+	size_t slash = path.find_last_of('/');
+	if (slash == std::string::npos || slash == 0)
+		return "/";
+	return path.substr(0, slash);
+}
+
+static std::string BootstrapZipPath()
+{
+	return FS::GetPath(AppDataParentPath(), BOOTSTRAP_ZIP_NAME);
+}
+
+static bool DirectoryHasEntries(const std::string &path)
+{
+	DIR *dir = opendir(path.c_str());
+	if (dir == nullptr)
+		return false;
+
+	bool has_entries = false;
+	struct dirent *entry;
+	while ((entry = readdir(dir)) != nullptr)
+	{
+		if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+			continue;
+
+		has_entries = true;
+		break;
+	}
+
+	closedir(dir);
+	return has_entries;
+}
+
+static bool AppDataHasUiFiles()
+{
+	return FS::FileExists(DATA_PATH "/assets/index.html") &&
+		   FS::FileExists(DATA_PATH "/assets/fonts/Roboto.ttf") &&
+		   FS::FileExists(DATA_PATH "/assets/fonts/Roboto_ext.ttf") &&
+		   FS::FileExists(DATA_PATH "/assets/fonts/fa-solid-900.ttf") &&
+		   FS::FileExists(DATA_PATH "/assets/fonts/OpenFontIcons.ttf");
+}
+
+static bool AppDataHasPackagedFiles()
+{
+	return AppDataHasUiFiles() &&
+		   FS::FileExists(CACERT_FILE) &&
+		   FS::FileExists(CLIENT_ELF_PATH) &&
+		   FS::FileExists(SERVER_ELF_PATH);
+}
+
+static bool AppDataNeedsBootstrap()
+{
+	struct stat st;
+	if (stat(DATA_PATH, &st) != 0)
+		return true;
+
+	if (!S_ISDIR(st.st_mode))
+		return false;
+
+	return !DirectoryHasEntries(DATA_PATH) || !AppDataHasPackagedFiles();
+}
+
+static size_t BootstrapWriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+	FILE *out = static_cast<FILE *>(userp);
+	return fwrite(contents, 1, size * nmemb, out);
+}
+
+static bool DownloadBootstrapPackage(const std::string &zip_path)
+{
+	FS::Rm(zip_path);
+
+	FILE *out = FS::Create(zip_path);
+	if (out == nullptr)
+	{
+		dbglogger_log("[Bootstrap] Failed to create %s", zip_path.c_str());
+		return false;
+	}
+
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+	CURL *curl = curl_easy_init();
+	if (curl == nullptr)
+	{
+		FS::Close(out);
+		FS::Rm(zip_path);
+		dbglogger_log("[Bootstrap] curl_easy_init failed");
+		return false;
+	}
+
+	curl_easy_setopt(curl, CURLOPT_URL, BOOTSTRAP_PACKAGE_URL);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 10L);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, BootstrapWriteCallback);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, out);
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, "ezRemoteClient-bootstrap/1.0");
+	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L);
+	curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 60L);
+	curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1024L);
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+
+	if (FS::FileExists(CACERT_FILE))
+	{
+		curl_easy_setopt(curl, CURLOPT_CAINFO, CACERT_FILE);
+	}
+	else
+	{
+		// First-run bootstrap has no packaged CA bundle yet.
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+	}
+
+	CURLcode ret = curl_easy_perform(curl);
+	long status = 0;
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
+	curl_easy_cleanup(curl);
+	FS::Close(out);
+
+	if (ret != CURLE_OK || !HTTP_SUCCESS(status) || FS::GetSize(zip_path) <= 0)
+	{
+		dbglogger_log("[Bootstrap] Download failed: curl=%d http=%ld size=%ld", ret, status, FS::GetSize(zip_path));
+		FS::Rm(zip_path);
+		return false;
+	}
+
+	return true;
+}
+
+static bool ExtractBootstrapPackage(const std::string &zip_path)
+{
+	DirEntry zip_file;
+	memset(&zip_file, 0, sizeof(zip_file));
+
+	std::string parent_path = AppDataParentPath();
+	snprintf(zip_file.directory, sizeof(zip_file.directory), "%s", parent_path.c_str());
+	snprintf(zip_file.name, sizeof(zip_file.name), "%s", BOOTSTRAP_ZIP_NAME);
+	snprintf(zip_file.path, sizeof(zip_file.path), "%s", zip_path.c_str());
+	zip_file.file_size = FS::GetSize(zip_path);
+	zip_file.isDir = false;
+	zip_file.selectable = true;
+
+	if (ZipUtil::Extract(zip_file, parent_path) == 0)
+	{
+		dbglogger_log("[Bootstrap] Extract failed");
+		return false;
+	}
+
+	if (!AppDataHasPackagedFiles())
+	{
+		dbglogger_log("[Bootstrap] Extract completed but required files are missing");
+		return false;
+	}
+
+	return true;
+}
+
+static bool BootstrapAppData()
+{
+	dbglogger_log("[Bootstrap] Installing ezRemote Client package from %s", BOOTSTRAP_PACKAGE_URL);
+	Util::Notify("Installing ezRemote Client files...");
+
+	std::string parent_path = AppDataParentPath();
+	std::string zip_path = BootstrapZipPath();
+	FS::MkDirs(parent_path);
+
+	if (!DownloadBootstrapPackage(zip_path))
+	{
+		Util::Notify("ezRemote Client package download failed");
+		return false;
+	}
+
+	bool extracted = ExtractBootstrapPackage(zip_path);
+	FS::Rm(zip_path);
+
+	if (!extracted)
+	{
+		Util::Notify("ezRemote Client package extraction failed");
+		return false;
+	}
+
+	dbglogger_log("[Bootstrap] ezRemote Client package installed");
+	Util::Notify("ezRemote Client files installed");
+	return true;
+}
 
 ImVec4 ColorFromBytes(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
 {
@@ -269,9 +463,6 @@ static void terminate()
 
 int main()
 {
-	dbglogger_init_str("file:/data/homebrew/ezremote-client/client.log");
-	dbglogger_log("ezRemote Client started.");
-
 	// No buffering
 	setvbuf(stdout, NULL, _IONBF, 0);
 
@@ -283,6 +474,27 @@ int main()
 	if (sceNetInit() != 0) return -1;
 	if ((g_libnetMemId=sceNetPoolCreate("ezremote_client", NET_HEAP_SIZE, 0)) < 0)
 	{
+		return -1;
+	}
+
+	if (FS::IsFolder(DATA_PATH) == 0)
+	{
+		Util::Notify("ezRemote Client data path is not a directory");
+		return -1;
+	}
+
+	bool needs_bootstrap = AppDataNeedsBootstrap();
+	if (needs_bootstrap)
+	{
+		FS::MkDirs(DATA_PATH);
+	}
+
+	dbglogger_init_str("file:/data/homebrew/ezremote-client/client.log");
+	dbglogger_log("ezRemote Client started.");
+
+	if (needs_bootstrap && !BootstrapAppData() && !AppDataHasUiFiles())
+	{
+		dbglogger_log("[Bootstrap] Cannot continue without UI assets");
 		return -1;
 	}
 

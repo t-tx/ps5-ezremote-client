@@ -44,6 +44,7 @@ extern int overwrite_type;
 extern ACTIONS action_to_take;
 extern bool file_transfering;
 extern char extract_zip_folder[];
+extern char download_dest_folder[];
 extern char zip_file_path[];
 extern std::vector<std::string> edit_buffer;
 extern bool is_server_started;
@@ -219,6 +220,7 @@ namespace Windows
     void AfterFavoriteUrlCallback(int ime_result);
     void AfterExtractFolderCallback(int ime_result);
     void AfterExtractRemoteFolderCallback(int ime_result);
+    void AfterDownloadFolderCallback(int ime_result);
     void AfterZipFileCallback(int ime_result);
     void AferServerChangeCallback(int ime_result);
     void AfterHttpPortChangeCallback(int ime_result);

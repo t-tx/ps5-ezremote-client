@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Breadcrumbs from '../components/FileManager/Breadcrumbs';
-import FileList from '../components/FileManager/FileList';
+import FileList, { directoryPreviewCache, directoryPreviewKey } from '../components/FileManager/FileList';
 import UploadArea from '../components/FileManager/UploadArea';
-import { listFiles, listRemoteFiles, getSites, createFolder, createRemoteFolder, removeItems, removeRemoteItems, renameItem, renameRemoteItem, installPackages, installRemotePackages, getPkgInfo, downloadRemoteItem, extractItem, extractRemoteItem, getExtractStatus } from '../utils/api';
+import { listFiles, listRemoteFiles, getSites, createFolder, createRemoteFolder, removeItems, removeRemoteItems, renameItem, renameRemoteItem, installPackages, installRemotePackages, getPkgInfo, downloadRemoteItem, extractItem, extractRemoteItem, checkLocalExists } from '../utils/api';
 import { getMainUrl } from '../config';
-import { RefreshCw, FolderPlus, Globe, FileArchive } from 'lucide-react';
+import { RefreshCw, FolderPlus, Globe } from 'lucide-react';
 import PkgInfoModal from '../components/FileManager/PkgInfoModal';
 import FileActionModal from '../components/FileManager/FileActionModal';
+import DestinationModal from '../components/FileManager/DestinationModal';
+import OverwriteModal from '../components/FileManager/OverwriteModal';
 import { toast } from 'react-hot-toast';
 
 const LOCATION_STORAGE_KEYS = {
@@ -28,24 +30,6 @@ const clearSavedLocation = (isRemote) => {
   } catch {
     // localStorage can be disabled in private or embedded browser modes.
   }
-};
-
-const EXTRACT_STATE_COMPLETED = 2;
-const EXTRACT_STATE_FAILED = 3;
-
-const formatBytes = (bytes) => {
-  const value = Number(bytes || 0);
-  if (!value) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const index = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
-  return `${(value / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
-};
-
-const progressPercent = (job) => {
-  const total = Number(job?.bytes_to_download || 0);
-  const done = Number(job?.bytes_transfered || 0);
-  if (!total || done <= 0) return null;
-  return Math.min(100, Math.round((done / total) * 100));
 };
 
 const readSavedLocation = (isRemote) => {
@@ -79,6 +63,13 @@ const saveLocation = (isRemote, path, siteIdx) => {
   }
 };
 
+const joinPath = (basePath, name) => {
+  const path = normalizePath(basePath);
+  return path === '/' ? `/${name}` : `${path}/${name}`;
+};
+
+const isPkgName = (name) => /\.pkg$/i.test(String(name || ''));
+
 const FileManagerView = ({ isRemote = false }) => {
   const [currentPath, setCurrentPath] = useState('/');
   const [files, setFiles] = useState([]);
@@ -89,11 +80,19 @@ const FileManagerView = ({ isRemote = false }) => {
   const [sites, setSites] = useState([]);
   const [selectedSite, setSelectedSite] = useState(isRemote ? -1 : null); // null = Local PS5
 
+  const [filterPS5, setFilterPS5] = useState(false);
+  const [filterPKG, setFilterPKG] = useState(false);
+
   const [installModalOpen, setInstallModalOpen] = useState(false);
   const [pkgInfoData, setPkgInfoData] = useState(null);
   const [installFile, setInstallFile] = useState(null);
   const [selectedFileForAction, setSelectedFileForAction] = useState(null);
-  const [extractJobs, setExtractJobs] = useState([]);
+
+  const [destModalOpen, setDestModalOpen] = useState(false);
+  const [destModalAction, setDestModalAction] = useState(null); // 'Download' or 'Extract'
+  const [destModalFile, setDestModalFile] = useState(null);
+  
+  const [overwriteModalData, setOverwriteModalData] = useState({ isOpen: false, destination: '', expectedDest: '', action: null, file: null, fullPath: '' });
 
   const fetchFiles = async (path, siteIdx = selectedSite, options = {}) => {
     const nextPath = normalizePath(path);
@@ -198,26 +197,6 @@ const FileManagerView = ({ isRemote = false }) => {
     };
   }, [isRemote]);
 
-  useEffect(() => {
-    let isActive = true;
-
-    const loadExtractStatus = async () => {
-      try {
-        const status = await getExtractStatus();
-        if (isActive) setExtractJobs(status.jobs || []);
-      } catch {
-        if (isActive) setExtractJobs([]);
-      }
-    };
-
-    loadExtractStatus();
-    const timer = window.setInterval(loadExtractStatus, 2000);
-    return () => {
-      isActive = false;
-      window.clearInterval(timer);
-    };
-  }, []);
-
   const handleNavigate = (folderName) => {
     if (folderName === '/') {
       fetchFiles('/');
@@ -244,15 +223,12 @@ const FileManagerView = ({ isRemote = false }) => {
   };
 
   const handleDownload = async (file) => {
-    const fullPath = currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`;
     if (selectedSite !== null && selectedSite !== -1) {
-      try {
-        await downloadRemoteItem(selectedSite, fullPath);
-        toast.success(`${file.name} download started in background!`);
-      } catch (err) {
-        toast.error(`Download failed: ${err.message}`);
-      }
+      setDestModalFile(file);
+      setDestModalAction('Download');
+      setDestModalOpen(true);
     } else {
+      const fullPath = currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`;
       window.open(getMainUrl(`/__local__/downloadFile?path=${encodeURIComponent(fullPath)}`), '_blank');
     }
   };
@@ -292,21 +268,70 @@ const FileManagerView = ({ isRemote = false }) => {
   };
 
   const handleExtract = async (file) => {
+    setDestModalFile(file);
+    setDestModalAction('Extract');
+    setDestModalOpen(true);
+  };
+
+  const confirmDestinationAction = async (destination) => {
+    setDestModalOpen(false);
+    if (!destModalFile || !destModalAction) return;
+
+    const file = destModalFile;
     const fullPath = currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`;
-    const folderName = file.name.replace(/\.[^/.]+$/, "");
+    
+    await executeDestAction(destModalAction, file, fullPath, destination);
+  };
+
+  const confirmOverwrite = async () => {
+    const { action, file, fullPath, destination, expectedDest } = overwriteModalData;
+    setOverwriteModalData({ isOpen: false, destination: '', expectedDest: '', action: null, file: null, fullPath: '' });
 
     try {
-      if (selectedSite !== null && selectedSite !== -1) {
-        await extractRemoteItem(selectedSite, fullPath, folderName);
-      } else {
-        await extractItem(fullPath, '/data', folderName);
-      }
-      toast.success(`${file.name} extraction queued to /data/${folderName}`);
-      const status = await getExtractStatus();
-      setExtractJobs(status.jobs || []);
+      // Delete the existing file/folder locally first
+      await removeItems([expectedDest]);
+      // Then proceed
+      await executeDestAction(action, file, fullPath, destination);
     } catch (err) {
-      toast.error(`Extract failed: ${err.message}`);
+      toast.error(`Overwrite failed: ${err.message}`);
     }
+    
+    setDestModalFile(null);
+    setDestModalAction(null);
+  };
+
+  const executeDestAction = async (action, file, fullPath, destination) => {
+    try {
+      if (action === 'Download') {
+        await downloadRemoteItem(selectedSite, fullPath, destination, file.type === 'dir');
+        toast.success(`${file.name} download started to ${destination}!`);
+      } else if (action === 'Extract') {
+        const folderName = file.name.replace(/\.[^/.]+$/, "");
+        if (selectedSite !== null && selectedSite !== -1) {
+          await extractRemoteItem(selectedSite, fullPath, destination, folderName);
+        } else {
+          await extractItem(fullPath, destination, folderName);
+        }
+        toast.success(`${file.name} extraction queued. Check Background Jobs for progress.`);
+      }
+    } catch (err) {
+      if (err.message && err.message.startsWith('EXISTS:')) {
+        const expectedDest = err.message.substring(7);
+        setOverwriteModalData({
+          isOpen: true,
+          destination,
+          expectedDest,
+          action,
+          file,
+          fullPath
+        });
+      } else {
+        toast.error(`${action} failed: ${err.message}`);
+      }
+    }
+
+    setDestModalFile(null);
+    setDestModalAction(null);
   };
 
   const handleInstall = async (file) => {
@@ -345,7 +370,49 @@ const FileManagerView = ({ isRemote = false }) => {
     setInstallFile(null);
   };
 
-  const visibleExtractJobs = extractJobs.slice(-3).reverse();
+  // Removed blocking directory tag fetch loop.
+  // We now rely on the lazy-loaded directoryPreviewCache from FileList.
+
+  const [cacheUpdateTrigger, setCacheUpdateTrigger] = useState(0);
+
+  useEffect(() => {
+    const onCacheUpdate = () => setCacheUpdateTrigger(t => t + 1);
+    window.addEventListener('directoryPreviewCacheUpdated', onCacheUpdate);
+    return () => window.removeEventListener('directoryPreviewCacheUpdated', onCacheUpdate);
+  }, []);
+
+  const filteredFiles = files.filter(file => {
+    if (!filterPS5 && !filterPKG) return true;
+
+    if (file.type !== 'dir') {
+       const isPKG = isPkgName(file.name);
+       if (filterPS5 && filterPKG) return isPKG; 
+       if (filterPS5) return false;
+       if (filterPKG) return isPKG;
+    }
+
+    const siteIdx = selectedSite === -1 ? null : selectedSite;
+    const key = directoryPreviewKey(file, currentPath, siteIdx);
+    const cached = directoryPreviewCache.get(key);
+
+    if (!cached || cached.status !== 'ready') return true; 
+    
+    const isPS5 = cached.hasPS5Game;
+    const isPKG = cached.hasPkg;
+
+    if (filterPS5 && filterPKG) return isPS5 || isPKG;
+    if (filterPS5) return isPS5;
+    if (filterPKG) return isPKG;
+
+    return true;
+  });
+
+  const filterButtonClass = (active, activeClass) => [
+    'rounded-xl border px-3.5 py-2 text-xs font-black uppercase tracking-[0.18em] transition-all focus:outline-none focus:ring-4',
+    active
+      ? activeClass
+      : 'border-ps-border bg-ps-card text-zinc-400 hover:border-white/20 hover:bg-white/10 hover:text-white focus:ring-white/20'
+  ].join(' ');
 
   return (
     <div className="max-w-6xl mx-auto w-full space-y-4">
@@ -358,6 +425,26 @@ const FileManagerView = ({ isRemote = false }) => {
         isRemote={isRemote}
         isLoading={pkgInfoLoading}
       />
+      {destModalOpen && (
+        <DestinationModal
+          isOpen={destModalOpen}
+          onClose={() => setDestModalOpen(false)}
+          onConfirm={confirmDestinationAction}
+          fileName={destModalFile?.name}
+          actionName={destModalAction || ''}
+        />
+      )}
+
+      {overwriteModalData.isOpen && (
+        <OverwriteModal
+          isOpen={overwriteModalData.isOpen}
+          onClose={() => setOverwriteModalData({ ...overwriteModalData, isOpen: false })}
+          onConfirm={confirmOverwrite}
+          targetPath={overwriteModalData.expectedDest}
+          actionType={overwriteModalData.action}
+        />
+      )}
+
       <FileActionModal 
         isOpen={!!selectedFileForAction}
         file={selectedFileForAction}
@@ -394,6 +481,23 @@ const FileManagerView = ({ isRemote = false }) => {
           )}
         </div>
         <div className="flex items-center space-x-3">
+          <button
+            type="button"
+            aria-pressed={filterPS5}
+            onClick={() => setFilterPS5((value) => !value)}
+            className={filterButtonClass(filterPS5, 'border-ps-blue bg-ps-blue text-white shadow-[0_0_18px_rgba(0,149,255,0.35)] focus:ring-ps-blue/40')}
+          >
+            PS5
+          </button>
+          <button
+            type="button"
+            aria-pressed={filterPKG}
+            onClick={() => setFilterPKG((value) => !value)}
+            className={filterButtonClass(filterPKG, 'border-purple-400 bg-purple-500/90 text-white shadow-[0_0_18px_rgba(168,85,247,0.35)] focus:ring-purple-500/40')}
+          >
+            PKG
+          </button>
+
           {selectedSite === null && (
             <button 
               onClick={handleCreateFolder}
@@ -418,50 +522,14 @@ const FileManagerView = ({ isRemote = false }) => {
 
       <Breadcrumbs currentPath={currentPath} onNavigate={handleNavigate} />
 
-      {visibleExtractJobs.length > 0 && (
-        <div className="space-y-2">
-          {visibleExtractJobs.map((job) => {
-            const percent = progressPercent(job);
-            const isFailed = job.state === EXTRACT_STATE_FAILED;
-            const isDone = job.state === EXTRACT_STATE_COMPLETED;
-            const title = isFailed ? 'Extraction failed' : isDone ? 'Extracted' : 'Extracting';
-            const borderTone = isFailed ? 'border-red-500/30 bg-red-500/10' : isDone ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-yellow-500/30 bg-yellow-500/10';
-            const barTone = isFailed ? 'bg-red-400' : isDone ? 'bg-emerald-400' : 'bg-yellow-400';
-
-            return (
-              <div key={job.id} className={`rounded-2xl border p-4 ${borderTone}`}>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="rounded-xl bg-black/30 p-2 text-yellow-300">
-                      <FileArchive className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate font-semibold text-white">{title} {job.folder_name}</div>
-                      <div className="truncate text-sm text-zinc-300">{job.error || job.message || job.final_path}</div>
-                    </div>
-                  </div>
-                  <div className="text-right text-sm font-medium text-zinc-200">
-                    <div className="capitalize">{String(job.state_text || '').replace('_', ' ')}</div>
-                    {percent !== null && <div className="text-xs text-zinc-400">{formatBytes(job.bytes_transfered)} / {formatBytes(job.bytes_to_download)}</div>}
-                  </div>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/40">
-                  <div className={`h-full rounded-full transition-all ${barTone}`} style={{ width: `${isDone ? 100 : percent || 8}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl">
           {error}
         </div>
       )}
 
-      <FileList 
-        files={files} 
+      <FileList
+        files={filteredFiles}
         isLoading={loading}
         currentPath={currentPath}
         siteIdx={selectedSite === -1 ? null : selectedSite}

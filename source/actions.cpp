@@ -915,9 +915,7 @@ namespace Actions
 
         for (std::vector<DirEntry>::iterator it = files.begin(); it != files.end(); ++it)
         {
-            std::string download_dest = local_directory;
-            if (download_dest == "/")
-                download_dest = "/data";
+            std::string download_dest = download_dest_folder;
 
             if (it->isDir)
             {

@@ -30,8 +30,9 @@ Primary targets:
 
 The application logs runtime information to a debug log file on the PS5.
 When debugging issues (e.g. failed remote package installations), you can fetch the log via FTP using anonymous access:
-- Log path: `/data/homebrew/ezremote-client/debug.log`
+- Client log path: `/data/homebrew/ezremote-client/debug.log`
 - Example FTP URI: `ftp://<PS5_IP>:2121/data/homebrew/ezremote-client/debug.log`
+- All server logs should be written to: `/data/homebrew/ezremote-client/server.log`
 
 ## Build Commands
 
@@ -63,7 +64,8 @@ Other targets:
 - For C/C++ changes, run `make build` when the SDK and dependencies are available.
 - For package/release checks, run `cmake --build build --target package` after a successful build.
 - For web UI-only changes under `data/assets/`, at minimum check JavaScript/CSS syntax manually and preserve existing `/__local__/...` API contracts.
-- For frontend asset deployment, use `make deploy-frontend` when the user asks to deploy the frontend, instead of manually copying `frontend/dist` into `data/assets`.
+- For deployment to the PS5, always use direct `make deploy` to avoid partial or mismatched uploads. Do not manually upload individual ELF/assets or use daemon-only FTP deploy unless the user explicitly overrides this preference in the current task.
+- For frontend asset deployment, use `make deploy-frontend` only when the user specifically asks to deploy just the frontend; otherwise use `make deploy` for normal PS5 deployment.
 
 ## Existing Project Rules
 
