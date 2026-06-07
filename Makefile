@@ -80,7 +80,7 @@ zip: build build-frontend
 	@rm -f $(DATA_DIR)/*.elf
 	@cp $(PACKAGE_ELFS) $(DATA_DIR)/
 	@cp $(CLIENT_BUILD_ELF) $(CLIENT_RELEASE_ELF)
-	@zip -r $(RELEASE_ZIP) $(DATA_DIR)
+	@cd $(DATA_DIR) && zip -r ../$(RELEASE_ZIP) .
 	@echo "Release assets ready: $(RELEASE_ASSETS)"
 
 # Creates a git tag and optionally publishes a GitHub Release using the gh CLI.
@@ -90,7 +90,7 @@ release:
 		echo "Error: VERSION is not set. Usage: make release VERSION=vX.YY"; \
 		exit 1; \
 	fi
-	$(MAKE) zip
+# 	$(MAKE) zip
 	@mkdir -p $(BUILD_DIR)
 	@printf '%s\n' \
 		'# $(RELEASE_TITLE)' \
