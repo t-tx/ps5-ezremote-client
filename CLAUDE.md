@@ -87,6 +87,21 @@ Other targets:
 - Manage temporary files carefully to avoid orphaned data on the user's drive if an install or process crashes, as the PS5 sandboxes applications but files written to `/data` and `/mnt/usb` persist.
 - When working with `cpp-httplib`, avoid byte-by-byte copies (`std::vector::insert` or `std::string::append` loops) during multipart parsing; use `memcpy`/`memmove` to prevent massive CPU bottlenecks on the PS5.
 - Be vigilant about memory management, especially in asynchronous `http_server` callbacks where objects might outlive the request.
+- Background worker loops (`ExtractFilesThread`, `DownloadFilesThread`, `FileOpFilesThread`) use `sleep(1)` to yield CPU time. Avoid spin-locking without sleeps in new background loops. Network accept loops (like `LegacyDpiServer`) must also use a `usleep` backoff on failure to prevent 100% CPU usage.
+- `cpp-httplib` thread pool is explicitly limited via `CPPHTTPLIB_THREAD_POOL_COUNT=8` in `CMakeLists.txt` to prevent massive memory bloat (each thread consumes a large PS5 stack footprint).
+- Avoid passing local stack variables to background threads without deep copying them. 
+- Always ensure `json_tokener_parse` results are cleaned up with `json_object_put` on all return paths, including early error returns.
+
+## APIs and Background Processing
+
+The backend relies on an embedded HTTP server running on port `6701` to process API requests and spawn async jobs.
+- **Synchronous vs Asynchronous APIs**: Many `/__local__/` endpoints (like `/upload`, `/compress`, `/mkdir`) perform file operations directly within the HTTP handler thread. Async endpoints like `/api/siteextract`, `/__local__/extract`, `/api/install_remote_pkg`, and `/fileop_start` validate payloads, push a job to a global queue (e.g., `bg_extract_list`), and return immediately.
+- **Background Worker Threads**: Dedicated threads continuously monitor global queues. 
+  - `ExtractFilesThread` spawns `ExtractSingleFileThread` for zip unarchiving.
+  - `DownloadFilesThread` spawns `DownloadSingleFileThread` for remote file transfers.
+  - `FileOpFilesThread` handles background move/copy/delete batches.
+  - `BackgroundInstallThread` manages remote PKG installations.
+- **Thread Safety (CRITICAL)**: Always use `CONFIG::LockExtractList()`, `CONFIG::LockDownloadList()`, etc. when accessing global state lists. For shared class fields (e.g., `PkgInstallUseCase::current_progress`), use `std::mutex` and `std::lock_guard` to synchronize reads and writes across HTTP and background threads.
 
 ## Remote Client Guidance
 

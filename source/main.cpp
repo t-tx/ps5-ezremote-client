@@ -17,16 +17,37 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "dbglogger.h"
 #include "sceSystemService.h"
 
-extern "C"
+extern "C" {
+    int sceNetInit(void);
+    int sceNetPoolCreate(const char *name, int size, int flags);
+    int sceNetPoolDestroy(int memid);
+    int sceKernelSendNotificationRequest(int, void *, size_t, int);
+    int sceSystemServiceLoadExec(const char *, char **);
+}
+
+static int g_libnetMemId = -1;
+
+typedef struct notify_request {
+    char useless1[45];
+    char message[3075];
+} notify_request_t;
+
+static void Notify(const char *fmt, ...)
 {
-    static int g_libnetMemId = -1;
-    int sceNetInit();
-    int sceNetPoolCreate(const char *, int, int);
-    int sceNetPoolDestroy(int);
+    notify_request_t req;
+    va_list args;
+
+    bzero(&req, sizeof req);
+    va_start(args, fmt);
+    vsnprintf(req.message, sizeof req.message, fmt, args);
+    va_end(args);
+
+    sceKernelSendNotificationRequest(0, &req, sizeof req, 0);
 };
 
 #ifndef EZREMOTE_SERVER_REQUIRED_VERSION
@@ -39,6 +60,8 @@ extern "C"
 #define DATA_PATH "/data/homebrew/" APP_ID
 #define SERVER_ELF_PATH DATA_PATH "/ezremote-server.elf"
 #define CLIENT_ELF_PATH DATA_PATH "/ezremote_client.elf"
+#define RESTART_FLAG_PATH DATA_PATH "/restart.flag"
+#define RESTART_SERVER_ARG "restart-server"
 
 static const char *BOOTSTRAP_PACKAGE_URL = "https://github.com/t-tx/ps5-ezremote-client/releases/latest/download/ezremote_client.zip";
 static const char *BOOTSTRAP_ZIP_NAME = "ezremote_client_bootstrap.zip";
@@ -504,11 +527,33 @@ static bool ServerVersionMatches(const std::string &version)
     return version == EZREMOTE_SERVER_REQUIRED_VERSION;
 }
 
+static bool IsRestartServerArg(const char *arg)
+{
+    return arg != nullptr &&
+           (strcmp(arg, RESTART_SERVER_ARG) == 0 ||
+            strcmp(arg, "--" RESTART_SERVER_ARG) == 0 ||
+            strcmp(arg, "restart_server") == 0);
+}
+
+static bool HasRestartServerArg(int argc, char *argv[])
+{
+    for (int i = 1; i < argc; ++i)
+    {
+        if (IsRestartServerArg(argv[i]))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool CheckServerRunning()
 {
     std::string version;
     return GetServerVersion(&version) && ServerVersionMatches(version);
 }
+
+
 
 static void StopRunningServer()
 {
@@ -640,6 +685,40 @@ err:
     return -1;
 }
 
+static int RestartEzRemoteServer()
+{
+    RemoveFile(RESTART_FLAG_PATH);
+
+    dbglogger_log("Restart-server argument detected. Stopping ezRemote Server...");
+    StopRunningServer();
+    if (!WaitForServerStop())
+    {
+        dbglogger_log("Timed out waiting for ezRemote Server to stop before restart.");
+        return -1;
+    }
+
+    dbglogger_log("Starting ezRemote Server after restart request...");
+    if (StartEzRemoteServer() != 0)
+    {
+        dbglogger_log("Failed to request ezRemote Server start during restart.");
+        return -1;
+    }
+
+    for (int i = 0; i < 10; ++i)
+    {
+        if (CheckServerRunning())
+        {
+            dbglogger_log("ezRemote Server restart completed.");
+            Notify("ezRemote Server restarted successfully");
+            return 0;
+        }
+        sleep(1);
+    }
+
+    dbglogger_log("Timed out waiting for restarted ezRemote Server %s.", EZREMOTE_SERVER_REQUIRED_VERSION);
+    return -1;
+}
+
 static void terminate()
 {
     if (g_libnetMemId != -1)
@@ -652,7 +731,7 @@ static void terminate()
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     setvbuf(stdout, NULL, _IONBF, 0);
 
@@ -661,7 +740,8 @@ int main()
 
     MkDirs(DATA_PATH);
     dbglogger_init_str("file:/data/homebrew/ezremote-client/client.log");
-    dbglogger_log("ezRemote Client bootstrapper starting...");
+    const bool restart_server = HasRestartServerArg(argc, argv);
+    dbglogger_log("ezRemote Client bootstrapper starting%s.", restart_server ? " for server restart" : "");
 
     if (sceNetInit() != 0)
     {
@@ -694,9 +774,21 @@ int main()
         return -1;
     }
 
-    if (StartEzRemoteServer() != 0)
+    if (restart_server)
     {
-        dbglogger_log("Failed to request ezRemote Server start.");
+        int restart_result = RestartEzRemoteServer();
+        dbglogger_log("ezRemote Client restart helper finished with result %d. Taking over as main bootstrapper.", restart_result);
+        if (restart_result != 0)
+        {
+            return restart_result;
+        }
+    }
+    else
+    {
+        if (StartEzRemoteServer() != 0)
+        {
+            dbglogger_log("Failed to request ezRemote Server start.");
+        }
     }
 
     dbglogger_log("Waiting for ezRemote Server %s to start...", EZREMOTE_SERVER_REQUIRED_VERSION);
@@ -716,44 +808,9 @@ int main()
         return 0;
     }
 
-    dbglogger_log("ezRemote Server is serving on port 6701.");
+    dbglogger_log("Bootstrapping complete. Server injected successfully. Exiting bootstrapper.");
+    Notify("ezRemote Server is running in the background.");
 
-    sceSystemServiceLaunchWebBrowser("http://127.0.0.1:6701");
-
-    dbglogger_log("Bootstrapping complete. Server injected successfully. Main loop waiting...");
-    printf("ezRemote Server is running.\nOpen your browser to the PS5's IP address on port 6701.\n");
-
-    while (!done)
-    {
-        sleep(2);
-
-        std::string version;
-        bool server_running = GetServerVersion(&version);
-        if (server_running && ServerVersionMatches(version))
-        {
-            continue;
-        }
-
-        if (FileExists(DATA_PATH "/restart.flag"))
-        {
-            RemoveFile(DATA_PATH "/restart.flag");
-            dbglogger_log("Restart flag detected. Restarting ezRemote Server...");
-            StartEzRemoteServer();
-        }
-        else if (server_running)
-        {
-            dbglogger_log("ezRemote Server version changed to %s. Restarting required version %s.",
-                          version.c_str(), EZREMOTE_SERVER_REQUIRED_VERSION);
-            StartEzRemoteServer();
-        }
-        else
-        {
-            dbglogger_log("ezRemote Server stopped. Exiting bootstrapper.");
-            done = true;
-        }
-    }
-
-    dbglogger_log("ezRemote Client shutting down.");
-
+    sceSystemServiceLoadExec("exit", nullptr);
     return 0;
 }

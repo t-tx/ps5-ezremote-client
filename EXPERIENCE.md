@@ -87,6 +87,7 @@ Use the vendored Node install before running frontend commands:
 export PATH="/workspace/node-v22.14.0-linux-x64/bin:$PATH" && npm run build
 ```
 This matches the `Makefile` frontend target and allows Vite to build successfully.
+For one-off agent shell commands, prefix the command directly, for example `PATH="/workspace/node-v22.14.0-linux-x64/bin:$PATH" npm run build` from `frontend/`.
 
 ---
 
@@ -145,13 +146,14 @@ export PATH="/workspace/node-v22.14.0-linux-x64/bin:$PATH" && npm run build
 Running `make build` to verify a client-only change while `ps5-ezremote-server/` has unrelated local edits.
 
 ### The Pattern / Symptom
-The main `ezremote_client.elf` may compile/link successfully, then the build fails later in `ps5-ezremote-server`, for example with `dbglogger_printf` undeclared or syntax/brace errors in `ps5-ezremote-server/source/clients/ftpclient.cpp`.
+The main `ezremote_client.elf` may compile/link successfully, then the build fails later in `ps5-ezremote-server`, for example with `dbglogger_printf` undeclared, syntax/brace errors in `ps5-ezremote-server/source/clients/ftpclient.cpp`, or an unrelated API mismatch such as `ExtractRemotePkg` being called with too few arguments.
 
 ### The Solution
 Do not modify or revert unrelated submodule changes just to verify the client edit. Record the full-build failure, then force a scoped rebuild of the touched client object and client target, for example:
 ```bash
-ninja -C build -t clean CMakeFiles/ezremote_client.elf.dir/source/server/http_server.cpp.o && cmake --build build --target ezremote_client.elf
+ninja -C build -t clean CMakeFiles/ezremote_client.elf.dir/source/main.cpp.o && cmake --build build --target ezremote_client.elf
 ```
+If the client object already rebuilt before the server failure, `cmake --build build --target ezremote_client.elf` is sufficient.
 
 ---
 
@@ -167,6 +169,8 @@ Running frontend verification or rebuild commands after changing `frontend/src/.
 When a normal `make frontend` rebuild is impossible, patch the already-built generated assets only with tightly scoped, counted replacements, and verify that the old minified snippets are gone and the new snippets appear in both `frontend/dist/index.html` and `data/assets/index.html`. Avoid broad generated-asset edits, and prefer restoring the vendored Node runtime plus `make frontend` when available.
 
 When using Perl replacements on minified React code, escape literal `$` characters in replacement strings. Unescaped template literals such as `` `ex-${e.timestamp}-${t}` `` can collapse to broken keys like `` `ex--` `` because Perl treats `${...}` as interpolation. Verify key snippets after generated-asset patches.
+
+Some containers also lack `rg`, so use the Grep tool for source discovery and counted `perl -0ne` searches for minified bundle snippets before applying `perl -0pi` replacements.
 
 ---
 
@@ -200,6 +204,19 @@ Use the frontend build for JSX syntax verification:
 PATH="/workspace/node-v22.14.0-linux-x64/bin:$PATH" npm run build
 ```
 Run it from `frontend/`. This invokes Vite and validates JSX through the same transform used for the packaged Web UI.
+
+---
+
+## 14. Remote FTP Directory Listing Can Crash The Server
+
+### The Failure Attempt
+Listing a configured remote FTP site from the Web UI after the server refactor.
+
+### The Pattern / Symptom
+`ezremote-server` can crash immediately when `/api/sitelist` lists a remote directory. Triggers include FTP servers returning blank or malformed listing lines, directory data being parsed as a C string without enough validation, and saved FTP hosts without an explicit `ftp://` prefix causing `url.substr(6)` assumptions in `FtpClient::Connect`.
+
+### The Solution
+Make FTP listing and connect code defensive: accept raw host strings as FTP hosts, return failure for empty hosts, never trim CRLF by moving before the start of a line buffer, validate MLSD filename tokens before `snprintf`, null-terminate listing buffers defensively, and use bounded `snprintf` for fixed `DirEntry`/FTP command buffers. Also make `/api/sitelist` require `site_idx` and close remote clients through `Quit()` after listing.
 
 ---
 

@@ -181,8 +181,8 @@ const FileManagerView = ({ isRemote = false }) => {
             return;
           }
 
-          const savedSite = savedLocation && loadedSites.find((site) => Number.parseInt(site.index, 10) === savedLocation.siteIdx);
-          const siteIdx = savedSite ? savedSite.index : loadedSites[0].index;
+          const savedSite = savedLocation && loadedSites.find((site) => Number.parseInt(site.site_idx, 10) === savedLocation.siteIdx);
+          const siteIdx = savedSite ? savedSite.site_idx : loadedSites[0].site_idx;
           const path = savedSite ? savedLocation.path : '/';
 
           if (savedLocation && !savedSite) clearSavedLocation(true);
@@ -223,6 +223,10 @@ const FileManagerView = ({ isRemote = false }) => {
   const handleNavigate = (folderName) => {
     if (folderName === '/') {
       fetchFiles('/');
+      return;
+    }
+    if (folderName === '..') {
+      fetchFiles(parentPath(currentPath));
       return;
     }
     const newPath = folderName.startsWith('/') ? folderName : (currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`);
@@ -545,7 +549,7 @@ const FileManagerView = ({ isRemote = false }) => {
                   className="appearance-none bg-ps-card border border-ps-border hover:border-ps-blue focus:border-ps-blue text-white text-sm rounded-xl px-4 py-2 pr-10 focus:outline-none focus:ring-4 focus:ring-ps-blue/30 transition-all font-medium"
                 >
                   {sites.map(site => (
-                    <option key={site.index} value={site.index}>{site.name} ({site.server})</option>
+                    <option key={site.site_idx} value={site.site_idx}>{site.name} ({site.server})</option>
                   ))}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
