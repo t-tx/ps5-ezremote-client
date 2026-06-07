@@ -36,7 +36,7 @@ Interfaces with internal PS5 APIs (`SceAppInstUtil`) to install PS4 PKG files. I
 - **Remote Package Install (RPI):** Streams the PKG directly from a remote server without fully downloading it to the PS5 disk. Utilizes `split_file.cpp` to handle large PKGs and archive extraction.
 
 ### 6. Local HTTP Server (`source/server/http_server.cpp`)
-Embeds a local web server running on port `9090` using `cpp-httplib`.
+Embeds a local web server running on port `6701` using `cpp-httplib`.
 - **Web UI:** Serves a React-based web application (`data/assets/`) allowing users to manage files from a PC or mobile device.
 - **Upload/Download:** Handles chunked multipart uploads and file downloads.
 - **Proxy/Range Requests:** Acts as a bridge to stream files from remote servers to the PS5 installer, translating HTTP Range requests into appropriate `libcurl` calls.

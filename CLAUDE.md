@@ -4,7 +4,7 @@ Guidance for Claude Code and other AI agents working in this repository.
 
 ## Project Overview
 
-ezRemote Client is a PS5 homebrew C/C++ application built with the PS5 Payload SDK. It provides a FileZilla-style ImGui/SDL2 file manager, remote protocol clients, PS4 PKG install flows, an embedded web UI, and bundled background payloads.
+ezRemote Client is a PS5 homebrew C/C++ application built with the PS5 Payload SDK. The root client is now a bootstrapper that installs/launches `ezremote-server.elf` and opens the web UI; the server payload owns file management, remote clients, install flows, and API logic.
 
 Primary targets:
 
@@ -14,14 +14,14 @@ Primary targets:
 
 ## Repository Layout
 
-- `source/`: main PS5 payload bootstrapper application that launches `ezremote-server.elf` and opens the web UI.
-- `source/installer.cpp`: local, remote, split, archive, DPI, and ezRemote Server install logic.
-- `source/fs.cpp`: local filesystem abstraction.
+- `source/`: minimal PS5 payload bootstrapper application that installs missing packaged files, launches `ezremote-server.elf`, verifies the required server version, and opens the web UI.
 - `data/assets/`: packaged web UI assets served from `/data/homebrew/ezremote-client/assets`.
 - `ps5-ezremote-dpi/`: submodule for the direct package installer payload.
 - `ps5-ezremote-server/`: backend server payload that handles file operations, API logic, and serves the Web UI.
 - `ps5-ezremote-server/source/clients/`: remote protocol clients (only Local, FTP, and IIS are currently preserved).
+- `ps5-ezremote-server/source/ps5_api/fs.cpp`: local filesystem abstraction.
 - `ps5-ezremote-server/source/server/http_server.cpp`: embedded web server and `/__local__/...` and `/api/sites` API handlers.
+- `ps5-ezremote-server/source/wrapper/installer.cpp`: local, remote, split, archive, DPI, and ezRemote Server install logic.
 - `build_deps.sh`, `build_deps_remaining.sh`: dependency cross-build scripts for the PS5 toolchain.
 
 ## Logging and Debugging
@@ -82,7 +82,7 @@ Other targets:
 - Large-file transfers, range requests, and PKG installs are performance-sensitive. Avoid unnecessary copies, tiny writes, and repeated open/close cycles in hot paths.
 - Use existing logging via `dbglogger_log` and `dbglogger_printf` when diagnosing device-side behavior.
 - The public web API convention is `{ "result": { "success": true|false, "error": ... } }`; keep this contract stable unless the caller is updated too.
-- `source/http/`, `source/imgui/`, and `source/pugixml/` are vendored sources. Edit them only when the bug is inside the vendored code or the project already carries a local patch.
+- `ps5-ezremote-server/source/http/`, `source/imgui/`, and `ps5-ezremote-server/source/pugixml/` are vendored sources. Edit them only when the bug is inside the vendored code or the project already carries a local patch.
 - Do not change generated/build artifacts in `build/`.
 - Manage temporary files carefully to avoid orphaned data on the user's drive if an install or process crashes, as the PS5 sandboxes applications but files written to `/data` and `/mnt/usb` persist.
 - When working with `cpp-httplib`, avoid byte-by-byte copies (`std::vector::insert` or `std::string::append` loops) during multipart parsing; use `memcpy`/`memmove` to prevent massive CPU bottlenecks on the PS5.
@@ -90,7 +90,7 @@ Other targets:
 
 ## Remote Client Guidance
 
-- New remote protocols should implement `RemoteClient` from `source/clients/remote_client.h`.
+- New remote protocols should implement `RemoteClient` from `ps5-ezremote-server/source/clients/remote_client.h`.
 - Reuse `BaseClient` behavior when the protocol is HTTP-like.
 - Keep `SupportedActions()` accurate; the UI enables actions from these flags.
 - Pay attention to URL encoding. HTTP directory clients often need server-specific parsing and escaping.

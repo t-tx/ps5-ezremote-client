@@ -1,6 +1,8 @@
 #ifndef __SCE_SYSTEM_SERVICE_H__
 #define __SCE_SYSTEM_SERVICE_H__
 
+#include <stdint.h>
+
 typedef struct {
     char padding[8];
     char s_version[10]; // e.g. " 6.720.001"

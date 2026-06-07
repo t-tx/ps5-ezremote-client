@@ -7,6 +7,7 @@ import {
   Menu,
   Terminal,
   Power,
+  PowerOff,
   X,
   Globe,
   Layers
@@ -191,6 +192,25 @@ function App() {
               label="Restart"
               className="text-orange-500 hover:bg-orange-500/10"
             />
+            <NavButton
+              sidebar
+              sidebarExpanded={sidebarExpanded}
+              active={false}
+              onClick={async () => {
+                if (confirm('Are you sure you want to completely stop the ezRemote server? You will need to launch it again from the PS5 homebrew menu.')) {
+                  try {
+                    const res = await fetch(getMainUrl('/stop'));
+                    if (res.ok) toast.success('Server stopped.');
+                    else toast.error('Failed to stop server.');
+                  } catch {
+                    toast.error('Server stopped.');
+                  }
+                }
+              }}
+              icon={PowerOff}
+              label="Stop"
+              className="text-red-500 hover:bg-red-500/10"
+            />
           </div>
         </div>
       </aside>
@@ -203,7 +223,17 @@ function App() {
         <NavButton active={view === 'files'} onClick={() => setActiveView('files')} icon={FolderOpen} label="Local" mobileLabel="LOCAL" />
         <NavButton showSeparator active={view === 'remote'} onClick={() => setActiveView('remote')} icon={Globe} label="Remote" mobileLabel="REMOTE" />
         <NavButton showSeparator active={view === 'speed'} onClick={() => setActiveView('speed')} icon={Activity} label="Speed" mobileLabel="SPEED" />
-        <NavButton showSeparator active={view === 'logs'} onClick={() => setActiveView('logs')} icon={Terminal} label="Logs" mobileLabel="LOGS" />
+        <NavButton showSeparator active={false} onClick={async () => {
+          if (confirm('Are you sure you want to completely stop the ezRemote server?')) {
+            try {
+              const res = await fetch(getMainUrl('/stop'));
+              if (res.ok) toast.success('Server stopped.');
+              else toast.error('Failed to stop server.');
+            } catch {
+              toast.error('Server stopped.');
+            }
+          }
+        }} icon={PowerOff} label="Stop" mobileLabel="STOP" className="text-red-500" />
       </nav>
 
       {/* MAIN CONTENT AREA */}

@@ -16,9 +16,6 @@ include_directories(
 add_executable(ezremote_client.elf
   source/dbglogger.c
   source/main.cpp
-  source/fs.cpp
-  source/zip_util.cpp
-  source/stubs.cpp
 )
 
 target_compile_definitions(ezremote_client.elf PRIVATE
@@ -36,7 +33,6 @@ target_link_libraries(ezremote_client.elf
   psl
   zstd
   pthread
-  minizip
   archive
   bz2
   lzma
@@ -45,11 +41,8 @@ target_link_libraries(ezremote_client.elf
   SceNet
   SceSysCore
   SceSystemService
-  SceUserService
   SceLibcInternal
-  SceNotification
   kernel_sys
-  SceAppInstUtil
 )
 
 set(APPDIR "ezremote-client")

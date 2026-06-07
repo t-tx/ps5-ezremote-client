@@ -161,7 +161,7 @@ Tested with following WebDAV server:
  - Download files from the PS5
 
 ## How to access the Web Interface ##
-You need to launch the "ezRemote Client" app on the PS5. Then on any device(laptop, tablet, phone etc..) with web browser goto to http://<ip_address_of_ps5>:9090 . That's all.
+You need to launch the "ezRemote Client" app on the PS5. Then on any device(laptop, tablet, phone etc..) with web browser goto to http://<ip_address_of_ps5>:6701 . That's all.
 
 The port# can be changed from the "Global Settings" dialog in the PS5 app. Any changes to the web server settings needs a restart of the application to take effect.
 
@@ -224,32 +224,78 @@ or any other language that you have a traslation for.
 
 ## Building from Source
 
-To build the project and its dependencies, a `Makefile` is provided. It acts as a wrapper around the dependency scripts and CMake configuration. 
+The repository includes a `Makefile` that wraps dependency builds, CMake, frontend packaging, PS5 deployment, and GitHub release creation.
 
-Ensure that you have the PS5 Payload SDK set up and the `PS5_PAYLOAD_SDK` environment variable defined.
+Before building, initialize submodules and ensure `PS5_PAYLOAD_SDK` points to the PS5 Payload SDK:
 
-1.  **Build Dependencies:**
-    To cross-compile all required third-party libraries for the PS5, run:
-    ```bash
-    make deps
-    ```
+```bash
+git submodule update --init --recursive
+export PS5_PAYLOAD_SDK=/path/to/ps5-payload-sdk
+```
 
-2.  **Build the Project:**
-    To configure and compile the main project (along with the background server submodule), run:
-    ```bash
-    make build
-    ```
-    or simply `make`. The compiled `.elf` files will be output to the `build/` directory.
+### Build Targets
 
-3.  **Clean:**
-    To clean the build directory, run:
-    ```bash
-    make clean
-    ```
+```bash
+make deps
+```
 
-4.  **Release:**
-    To package and upload a GitHub release, run:
-    ```bash
-    make release VERSION=vX.YY
-    ```
-    The release target copies every `.elf` output from `build/` into `data/`, zips the contents of `data/` into `ezremote_client.zip`, and uploads that zip together with `ezremote-client.elf`.
+Cross-compiles required third-party dependencies for the PS5 toolchain.
+
+```bash
+make
+```
+
+Configures and builds the client and bundled server payloads. This is equivalent to `make build`.
+
+```bash
+make build-frontend
+```
+
+Builds the React web UI into `frontend/dist`.
+
+```bash
+make clean
+```
+
+Removes the CMake build directory.
+
+### Deployment Targets
+
+Deployment uses FTP and defaults to `PS5_HOST=192.168.50.235` with anonymous credentials. Override these values when needed:
+
+```bash
+make deploy PS5_HOST=<PS5_IP>
+```
+
+`make deploy` builds and uploads both payload ELFs plus the latest frontend assets.
+
+```bash
+make deploy-elves PS5_HOST=<PS5_IP>
+```
+
+Builds and uploads only `ezremote_client.elf` and `ezremote-server.elf`.
+
+```bash
+make deploy-frontend PS5_HOST=<PS5_IP>
+```
+
+Builds the frontend and uploads files directly from `frontend/dist` to `/data/homebrew/ezremote-client/assets`.
+
+### Package and Release
+
+```bash
+make zip
+```
+
+Builds the payloads and frontend, stages frontend files into `data/assets`, copies the packaged ELFs into `data/`, and creates `ezremote_client.zip` from the contents of `data/`. It also creates the standalone GitHub release asset `build/ezremote-client.elf`.
+
+```bash
+make release VERSION=vX.YY
+```
+
+Builds the release assets, creates an annotated Git tag, pushes the tag, and creates a GitHub Release when the `gh` CLI is installed. Release notes are generated as Markdown at `build/release-notes-vX.YY.md` and include asset descriptions, installation steps, update guidance, and log locations.
+
+Release assets:
+
+- `ezremote_client.zip`: full app bundle for `/data/homebrew/ezremote-client`
+- `ezremote-client.elf`: standalone bootstrap ELF for launching ezRemote Client

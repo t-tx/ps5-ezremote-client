@@ -61,7 +61,7 @@ flowchart TB
     Actions --> Installer["INSTALLER namespace\nPKG install flows"]
     Actions --> ZipUtil["ZipUtil and SplitFile\narchive and disk cache flows"]
 
-    Browser["PC or mobile browser"] --> ClientHttp["ezremote_client embedded HTTP server\nport 9090"]
+    Browser["PC or mobile browser"] --> ClientHttp["ezremote_client embedded HTTP server\nport 6701"]
     ClientHttp --> LocalFS
     ClientHttp --> Installer
     ClientHttp --> RemoteClientPool["pooled RemoteClient instances\n/rmt_inst streaming"]
@@ -90,7 +90,7 @@ sequenceDiagram
     Main->>Net: sceNetInit
     Main->>Net: sceNetPoolCreate
     Main->>Config: LoadConfig
-    Main->>Http: Start port 9090
+    Main->>Http: Start port 6701
     Main->>Installer: StartEzRemoteServer
     Main->>SDL: CreateWindow and CreateRenderer
     Main->>Main: Textures::Init
@@ -291,7 +291,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    ClientServer["source/server/http_server.cpp\ncpp-httplib server on port 9090"]
+    ClientServer["source/server/http_server.cpp\ncpp-httplib server on port 6701"]
 
     ClientServer --> Static["Static routes\n/, /index.html, /favicon.ico, /debug/log, /game-icons"]
     ClientServer --> FileApi["Local file manager API\n/__local__/list, rename, move, copy, remove, edit, getContent, createFolder"]
@@ -315,7 +315,7 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     participant Browser as Browser
-    participant ClientHttp as ezremote_client HTTP 9090
+    participant ClientHttp as ezremote_client HTTP 6701
     participant Assets as Packaged assets
     participant React as React Web UI
     participant FS as Local FS
@@ -344,7 +344,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Browser as Browser React UI
-    participant ClientHttp as Client HTTP 9090
+    participant ClientHttp as Client HTTP 6701
     participant FS as FS namespace
 
     Browser->>ClientHttp: GET /__local__/uploadResumeSize?destination&filename
@@ -580,7 +580,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Installer as PS5 package installer
-    participant ClientHttp as ezremote_client HTTP 9090
+    participant ClientHttp as ezremote_client HTTP 6701
     participant Pool as RemoteClient pool
     participant Remote as Remote server
 
