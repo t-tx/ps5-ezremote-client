@@ -14,25 +14,24 @@ Primary targets:
 
 ## Repository Layout
 
-- `source/`: main PS5 client application.
-- `source/clients/`: remote protocol and HTTP directory-listing clients implementing `RemoteClient`.
-- `source/filehost/`: file host and debrid integrations.
-- `source/server/http_server.cpp`: embedded web server and `/__local__/...` API handlers.
-- `source/windows.cpp`, `source/gui.cpp`, `source/actions.cpp`: ImGui UI and action dispatch.
+- `source/`: main PS5 payload bootstrapper application that launches `ezremote-server.elf` and opens the web UI.
 - `source/installer.cpp`: local, remote, split, archive, DPI, and ezRemote Server install logic.
 - `source/fs.cpp`: local filesystem abstraction.
 - `data/assets/`: packaged web UI assets served from `/data/homebrew/ezremote-client/assets`.
 - `ps5-ezremote-dpi/`: submodule for the direct package installer payload.
-- `ps5-ezremote-server/`: submodule for the background install/download server payload.
+- `ps5-ezremote-server/`: backend server payload that handles file operations, API logic, and serves the Web UI.
+- `ps5-ezremote-server/source/clients/`: remote protocol clients (only Local, FTP, and IIS are currently preserved).
+- `ps5-ezremote-server/source/server/http_server.cpp`: embedded web server and `/__local__/...` and `/api/sites` API handlers.
 - `build_deps.sh`, `build_deps_remaining.sh`: dependency cross-build scripts for the PS5 toolchain.
 
 ## Logging and Debugging
 
-The application logs runtime information to a debug log file on the PS5.
+The application logs runtime information to separate client and server log files on the PS5.
 When debugging issues (e.g. failed remote package installations), you can fetch the log via FTP using anonymous access:
-- Client log path: `/data/homebrew/ezremote-client/debug.log`
-- Example FTP URI: `ftp://<PS5_IP>:2121/data/homebrew/ezremote-client/debug.log`
-- All server logs should be written to: `/data/homebrew/ezremote-client/server.log`
+- Client log path: `/data/homebrew/ezremote-client/client.log`
+- Server log path: `/data/homebrew/ezremote-client/server.log`
+- Example client FTP URI: `ftp://<PS5_IP>:2121/data/homebrew/ezremote-client/client.log`
+- Example server FTP URI: `ftp://<PS5_IP>:2121/data/homebrew/ezremote-client/server.log`
 
 ## Build Commands
 
@@ -49,12 +48,13 @@ Equivalent direct CMake commands:
 ```bash
 cmake -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=$PS5_PAYLOAD_SDK/toolchain/prospero.cmake
 cmake --build build
-cmake --build build --target package
 ```
 
 Other targets:
 
 - `make clean` removes `build/`.
+- `make zip` builds, copies every `build/**/*.elf` into `data/`, and zips the contents of `data/` into `ezremote_client.zip`.
+- `make release VERSION=vX.YY` creates/pushes a tag and uploads `ezremote_client.zip` plus `ezremote-client.elf` with `gh` when available.
 - `make deploy` builds and uploads to a hard-coded FTP target at `192.168.50.235`; do not run it unless explicitly requested and the target is correct.
 
 ## Testing And Verification
@@ -62,18 +62,18 @@ Other targets:
 - There is no normal host-side automated test suite configured in CMake.
 - Most meaningful verification requires building with the PS5 Payload SDK and testing on a jailbroken PS5.
 - For C/C++ changes, run `make build` when the SDK and dependencies are available.
-- For package/release checks, run `cmake --build build --target package` after a successful build.
+- For package/release checks, run `make zip` after a successful build.
 - For web UI-only changes under `data/assets/`, at minimum check JavaScript/CSS syntax manually and preserve existing `/__local__/...` API contracts.
 - For deployment to the PS5, always use direct `make deploy` to avoid partial or mismatched uploads. Do not manually upload individual ELF/assets or use daemon-only FTP deploy unless the user explicitly overrides this preference in the current task.
 - For frontend asset deployment, use `make deploy-frontend` only when the user specifically asks to deploy just the frontend; otherwise use `make deploy` for normal PS5 deployment.
 
 ## Existing Project Rules
 
-- **CRITICAL**: Always increase the app version in `source/windows.cpp` `ConnectionPanel()` before building, per `.agents/rules/coding.md`.
+- **CRITICAL**: Always increase `EZREMOTE_CLIENT_DISPLAY_VERSION` in `cmake/ezremote_versions.cmake` before building, per `.agents/rules/coding.md`.
 - **CRITICAL**: If any attempt fails (e.g., build failure, runtime crash, logic bug), you MUST update `EXPERIENCE.md` with the failure pattern and its solution once found.
 - **CRITICAL**: Keep persistent user preferences synchronized in this file. When the user states a workflow preference that should apply beyond the current request, update `CLAUDE.md` in the same turn; for example, if the user asks to use `make build` to verify changes, record that verification preference here and follow it going forward.
-- If making a packaged release, also review `APP_VERSION` in the root `CMakeLists.txt` and `EZREMOTE_SERVER_REQUIRED_VERSION` in `source/config.h` when server compatibility changes.
-- Keep `ps5-ezremote-server/CMakeLists.txt` `APP_VERSION` aligned with client compatibility requirements when editing the server payload.
+- If making a packaged release, review `EZREMOTE_CLIENT_PACKAGE_VERSION` in `cmake/ezremote_versions.cmake`.
+- Keep `EZREMOTE_SERVER_VERSION` and `EZREMOTE_SERVER_REQUIRED_VERSION` in `cmake/ezremote_versions.cmake` aligned when server compatibility changes.
 
 ## Development Notes
 
@@ -98,12 +98,11 @@ Other targets:
 
 ## Web UI Guidance
 
-- The web UI is packaged from `data/assets/` and served by `source/server/http_server.cpp`.
-- `data/assets/index.html` configures Angular FileManager endpoints.
-- `data/assets/res/ezremote-ui.js` and `ezremote-ui.css` are additive UX layers over the existing Angular file manager.
+- The web UI source lives in `frontend/`; the Vite single-file build is packaged into `data/assets/index.html` and served by `source/server/http_server.cpp`.
+- Keep `frontend/public/` and packaged public assets in `data/assets/` aligned for icons and `cache.appcache`.
 - Keep desktop and mobile usable; touch targets and modal scrolling matter.
 - Do not break existing endpoints under `/__local__/...` unless backend and frontend are changed together.
-- Note that a dedicated ezRemote UI layer exists that includes sticky top bars, path breadcrumb navigation, and an action toolbar.
+- The React UI includes sticky top bars, path breadcrumb navigation, and an action toolbar.
 - The UI filters navigation to show `/data` and `/mnt` at the root, and `/mnt` only shows non-empty `usb*` and `ex*` child directories.
 
 ## Package Installer Features
@@ -121,7 +120,7 @@ Important paths are defined in `source/config.h`:
 - DPI payload: `/data/homebrew/ezremote-client/ezremote-dpi.elf`.
 - Server payload: `/data/homebrew/ezremote-client/ezremote-server.elf`.
 - Web assets: `/data/homebrew/ezremote-client/assets`.
-- Default web server port: `9090`.
+- Default web server port: `6701`.
 - Internal ezRemote Server port: `6701`.
 
 ## Safety Notes

@@ -6,7 +6,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const PS5_IP = env.VITE_PS5_IP || '192.168.50.235'
-  const MAIN_PORT = env.VITE_MAIN_PORT || 9090
+  const MAIN_PORT = env.VITE_MAIN_PORT || 6701
   const DAEMON_PORT = env.VITE_DAEMON_PORT || 6701
 
   return {

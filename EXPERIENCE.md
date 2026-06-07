@@ -183,4 +183,24 @@ Persist a terminal `finished_timestamp` for background downloads, extracts, and 
 
 ---
 
+## 13. `node --check` Does Not Validate `.jsx` Source Files
+
+### The Failure Attempt
+Running the vendored Node syntax checker directly on a React source file, for example:
+```bash
+/workspace/node-v22.14.0-linux-x64/bin/node --check frontend/src/components/FileManager/FileList.jsx
+```
+
+### The Pattern / Symptom
+Node exits with `ERR_UNKNOWN_FILE_EXTENSION: Unknown file extension ".jsx"`, even when the JSX source is valid. `node --check` only checks JavaScript module syntax that Node knows how to load directly; it does not run the Vite/React JSX transform.
+
+### The Solution
+Use the frontend build for JSX syntax verification:
+```bash
+PATH="/workspace/node-v22.14.0-linux-x64/bin:$PATH" npm run build
+```
+Run it from `frontend/`. This invokes Vite and validates JSX through the same transform used for the packaged Web UI.
+
+---
+
 *(Add new failure patterns and solutions here as they are discovered)*

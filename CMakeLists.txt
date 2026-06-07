@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(ezremote_client)
 
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/ezremote_versions.cmake")
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDONT_HAVE_STRUPR -fstack-protector-all")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fpermissive")
 
@@ -9,97 +11,37 @@ add_subdirectory(ps5-ezremote-server)
 
 include_directories(
   source
-  source/pugixml
-  source/imgui
 )
 
 add_executable(ezremote_client.elf
-  source/imgui/imgui_draw.cpp
-  source/imgui/imgui_impl_sdl.cpp
-  source/imgui/imgui_impl_sdlrenderer.cpp
-  source/imgui/imgui_tables.cpp
-  source/imgui/imgui_widgets.cpp
-  source/imgui/imgui.cpp
-  source/pugixml/pugixml.cpp
-  source/clients/baseclient.cpp
-  source/clients/apache.cpp
-  source/clients/archiveorg.cpp
-  source/clients/ftpclient.cpp
-  source/clients/github.cpp
-  source/clients/myrient.cpp
-  source/clients/iis.cpp
-  source/clients/nginx.cpp
-  source/clients/npxserve.cpp
-  source/clients/nfsclient.cpp
-  source/clients/smbclient.cpp
-  source/clients/sftpclient.cpp
-  source/clients/rclone.cpp
-  source/clients/webdav.cpp
-  source/filehost/1fichier.cpp
-  source/filehost/alldebrid.cpp
-  source/filehost/directhost.cpp
-  source/filehost/filehost.cpp
-  source/filehost/gdrive.cpp
-  source/filehost/mediafire.cpp
-  source/filehost/pixeldrain.cpp
-  source/filehost/realdebrid.cpp
-  source/http/httplib.cpp
-  source/server/http_server.cpp
-  source/actions.cpp
-  source/config.cpp
-  source/crypt.c
   source/dbglogger.c
-  source/fs.cpp
-  source/gui.cpp
-  source/ime_dialog.cpp
-  source/inifile.c
-  source/installer.cpp
-  source/lang.cpp
   source/main.cpp
-  source/sfo.cpp
-  source/textures.cpp
-  source/windows.cpp
+  source/fs.cpp
   source/zip_util.cpp
-  source/split_file.cpp
+  source/stubs.cpp
 )
 
-target_compile_definitions(ezremote_client.elf PRIVATE CPPHTTPLIB_THREAD_POOL_COUNT=64 CPPHTTPLIB_RECV_BUFSIZ=12582912)
+target_compile_definitions(ezremote_client.elf PRIVATE
+  EZREMOTE_CLIENT_DISPLAY_VERSION="${EZREMOTE_CLIENT_DISPLAY_VERSION}"
+  EZREMOTE_SERVER_REQUIRED_VERSION="${EZREMOTE_SERVER_REQUIRED_VERSION}"
+)
 
 target_link_libraries(ezremote_client.elf
-  webp
-  webpdemux
-  SDL2
-  SDL2_image
   c
   c++
-  png
-  webp
-  jpeg
-  iconv
-  httpclient
-  zstd
   z
-  psl
-  crypto
-  ssl
   curl
-  lzma
-  bz2
+  ssl
+  crypto
+  psl
+  zstd
   pthread
-  samplerate
-  lexbor_static
-  smb2
-  nfs
   minizip
-  xml2
   archive
-  json-c
-  ssh2
-  SceAudioOut
-  SceVideoOut
-  SceImeDialog
-  SceKeyboard
-  ScePad
+  bz2
+  lzma
+  charset
+  iconv
   SceNet
   SceSysCore
   SceSystemService
@@ -111,7 +53,7 @@ target_link_libraries(ezremote_client.elf
 )
 
 set(APPDIR "ezremote-client")
-set(APP_VERSION "2.05")
+set(APP_VERSION "${EZREMOTE_CLIENT_PACKAGE_VERSION}")
 
 add_custom_target(package
    DEPENDS ezremote_client.elf
@@ -127,6 +69,4 @@ add_custom_target(package
    COMMAND sed -i "s/ezRemote Client/ezRemote Client v${APP_VERSION}/g"  ${APPDIR}/homebrew.js
 
    COMMAND zip -r ezremote-client.zip ${APPDIR}/
-
-
 )

@@ -11,9 +11,10 @@
 #include "base64.h"
 #include "openssl/md5.h"
 #include "common.h"
-#include "lang.h"
+#include "common.h"
 
 #define SCE_NOTIFICATION_LOCAL_USER_ID_SYSTEM 0xFE
+#define NOTIFY_ICON_FILE "/user/data/homebrew/ezremote-client/sce_sys/icon0.png"
 
 typedef struct notify_request
 {
@@ -413,7 +414,7 @@ namespace Util
         }
         sprintf(entry->name, "%s", "..");
         sprintf(entry->path, "%s", entry->directory);
-        sprintf(entry->display_size, "%s", lang_strings[STR_FOLDER]);
+        sprintf(entry->display_size, "%s", "Folder");
         entry->file_size = 0;
         entry->isDir = true;
         entry->selectable = false;

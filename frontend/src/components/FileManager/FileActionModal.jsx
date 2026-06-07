@@ -1,8 +1,8 @@
 import React from 'react';
-import { X, Download, Trash2, Edit, Package, File, FileArchive, Folder } from 'lucide-react';
+import { X, Download, Trash2, Edit, Package, File, FileArchive, Folder, Scissors, Copy } from 'lucide-react';
 import { cn } from '../../utils/helpers';
 
-const FileActionModal = ({ isOpen, file, isRemote, onClose, onDownload, onExtract, onInstall, onRename, onDelete }) => {
+const FileActionModal = ({ isOpen, file, isRemote, onClose, onDownload, onExtract, onInstall, onRename, onDelete, onCut, onCopy }) => {
   if (!isOpen || !file) return null;
 
   const fileName = file.name || '';
@@ -79,6 +79,23 @@ const FileActionModal = ({ isOpen, file, isRemote, onClose, onDownload, onExtrac
               >
                 <FileArchive className="w-5 h-5" /> Extract
               </button>
+            )}
+
+            {!isRemote && (
+              <>
+                <button
+                  onClick={() => { onClose(); onCut(file); }}
+                  className="flex items-center justify-center gap-2 p-3 bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 rounded-xl font-medium transition-all"
+                >
+                  <Scissors className="w-4 h-4" /> Cut
+                </button>
+                <button
+                  onClick={() => { onClose(); onCopy(file); }}
+                  className="flex items-center justify-center gap-2 p-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 rounded-xl font-medium transition-all"
+                >
+                  <Copy className="w-4 h-4" /> Copy
+                </button>
+              </>
             )}
 
             {!isRemote && !isExtractable && (

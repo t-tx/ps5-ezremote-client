@@ -1,29 +1,23 @@
 #undef main
 
-#include <sstream>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <curl/curl.h>
-// #include <dbglogger.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <fcntl.h>
 
-#include "imgui.h"
-#include "SDL2/SDL.h"
-#include "imgui_impl_sdl.h"
-#include "imgui_impl_sdlrenderer.h"
-#include "server/http_server.h"
-#include "config.h"
-#include "lang.h"
-#include "gui.h"
-#include "installer.h"
-#include "util.h"
-#include "textures.h"
 #include "dbglogger.h"
 #include "fs.h"
 #include "zip_util.h"
 
+#include "sceSystemService.h"
 extern "C"
 {
 	static int g_libnetMemId  = -1;
@@ -32,16 +26,24 @@ extern "C"
 	int sceNetPoolDestroy(int);	
 };
 
-#define FRAME_WIDTH 1920
-#define FRAME_HEIGHT 1080
 #define NET_HEAP_SIZE   (5 * 1024 * 1024)
 
-// SDL window and software renderer
-SDL_Window *window;
-SDL_Renderer *renderer;
+#define APP_ID "ezremote-client"
+#define DATA_PATH "/data/homebrew/" APP_ID
+#define CACERT_FILE DATA_PATH "/assets/certs/cacert.pem"
+#define SERVER_ELF_PATH DATA_PATH "/ezremote-server.elf"
+#define CLIENT_ELF_PATH DATA_PATH "/ezremote_client.elf"
 
-static const char *BOOTSTRAP_PACKAGE_URL = "https://github.com/t-tx/ps5-ezremote-client/releases/download/v0.04/ezremote_client.zip";
+static const char *BOOTSTRAP_PACKAGE_URL = "https://github.com/t-tx/ps5-ezremote-client/releases/latest/download/ezremote_client.zip";
 static const char *BOOTSTRAP_ZIP_NAME = "ezremote_client_bootstrap.zip";
+
+static bool done = false;
+
+static void signal_handler(int sig)
+{
+	dbglogger_log("Received signal %d, shutting down...", sig);
+	done = true;
+}
 
 static std::string AppDataParentPath()
 {
@@ -55,27 +57,6 @@ static std::string AppDataParentPath()
 static std::string BootstrapZipPath()
 {
 	return FS::GetPath(AppDataParentPath(), BOOTSTRAP_ZIP_NAME);
-}
-
-static bool DirectoryHasEntries(const std::string &path)
-{
-	DIR *dir = opendir(path.c_str());
-	if (dir == nullptr)
-		return false;
-
-	bool has_entries = false;
-	struct dirent *entry;
-	while ((entry = readdir(dir)) != nullptr)
-	{
-		if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-			continue;
-
-		has_entries = true;
-		break;
-	}
-
-	closedir(dir);
-	return has_entries;
 }
 
 static bool AppDataHasUiFiles()
@@ -97,14 +78,7 @@ static bool AppDataHasPackagedFiles()
 
 static bool AppDataNeedsBootstrap()
 {
-	struct stat st;
-	if (stat(DATA_PATH, &st) != 0)
-		return true;
-
-	if (!S_ISDIR(st.st_mode))
-		return false;
-
-	return !DirectoryHasEntries(DATA_PATH) || !AppDataHasPackagedFiles();
+	return !AppDataHasPackagedFiles();
 }
 
 static size_t BootstrapWriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
@@ -151,7 +125,6 @@ static bool DownloadBootstrapPackage(const std::string &zip_path)
 	}
 	else
 	{
-		// First-run bootstrap has no packaged CA bundle yet.
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 	}
@@ -162,7 +135,7 @@ static bool DownloadBootstrapPackage(const std::string &zip_path)
 	curl_easy_cleanup(curl);
 	FS::Close(out);
 
-	if (ret != CURLE_OK || !HTTP_SUCCESS(status) || FS::GetSize(zip_path) <= 0)
+	if (ret != CURLE_OK || (status < 200 || status >= 300) || FS::GetSize(zip_path) <= 0)
 	{
 		dbglogger_log("[Bootstrap] Download failed: curl=%d http=%ld size=%ld", ret, status, FS::GetSize(zip_path));
 		FS::Rm(zip_path);
@@ -185,7 +158,7 @@ static bool ExtractBootstrapPackage(const std::string &zip_path)
 	zip_file.isDir = false;
 	zip_file.selectable = true;
 
-	if (ZipUtil::Extract(zip_file, parent_path) == 0)
+	if (ZipUtil::Extract(zip_file, DATA_PATH) == 0)
 	{
 		dbglogger_log("[Bootstrap] Extract failed");
 		return false;
@@ -203,7 +176,7 @@ static bool ExtractBootstrapPackage(const std::string &zip_path)
 static bool BootstrapAppData()
 {
 	dbglogger_log("[Bootstrap] Installing ezRemote Client package from %s", BOOTSTRAP_PACKAGE_URL);
-	Util::Notify("Installing ezRemote Client files...");
+	printf("Installing ezRemote Client files...\n");
 
 	std::string parent_path = AppDataParentPath();
 	std::string zip_path = BootstrapZipPath();
@@ -211,7 +184,7 @@ static bool BootstrapAppData()
 
 	if (!DownloadBootstrapPackage(zip_path))
 	{
-		Util::Notify("ezRemote Client package download failed");
+		printf("ezRemote Client package download failed\n");
 		return false;
 	}
 
@@ -220,237 +193,84 @@ static bool BootstrapAppData()
 
 	if (!extracted)
 	{
-		Util::Notify("ezRemote Client package extraction failed");
+		printf("ezRemote Client package extraction failed\n");
 		return false;
 	}
 
 	dbglogger_log("[Bootstrap] ezRemote Client package installed");
-	Util::Notify("ezRemote Client files installed");
+	printf("ezRemote Client files installed\n");
 	return true;
 }
 
-ImVec4 ColorFromBytes(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
+static bool CheckServerRunning()
 {
-	return ImVec4((float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f, (float)a / 255.0f);
-};
+	CURL *curl = curl_easy_init();
+	if(curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, "http://127.0.0.1:6701/version");
+		curl_easy_setopt(curl, CURLOPT_NOBODY, 1L); // HEAD request
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 1L);
+		CURLcode res = curl_easy_perform(curl);
+		long http_code = 0;
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+		curl_easy_cleanup(curl);
+		if(res == CURLE_OK && http_code == 200) {
+			return true;
+		}
+	}
+	return false;
+}
 
-void InitImgui()
+static int StartEzRemoteServer()
 {
-	// Setup Dear ImGui context
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO &io = ImGui::GetIO();
-	(void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+	char buffer[8192];
+	in_addr_t in_addr;
+	int filefd = -1;
+	int sockfd = -1;
+	ssize_t read_return;
+	struct hostent *hostent;
+	struct sockaddr_in sockaddr_in;
+	unsigned short server_port = 9021;
 
-	// Setup Dear ImGui style
-	ImGui::StyleColorsDark();
-
-	io.Fonts->Clear();
-	io.Fonts->Flags |= ImFontAtlasFlags_NoBakedLines;
-
-	static const ImWchar ranges[] = { // All languages with chinese included
-		0x0020, 0x00FF, // Basic Latin + Latin Supplement
-		0x0100, 0x024F, // Latin Extended
-		0x0370, 0x03FF, // Greek
-		0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
-		0x0590, 0x05FF, // Hebrew
-		0x1E00, 0x1EFF, // Latin Extended Additional
-		0x1F00, 0x1FFF, // Greek Extended
-		0x2000, 0x206F, // General Punctuation
-		0x2100, 0x214F, // Letterlike Symbols
-		0x2460, 0x24FF, // Enclosed Alphanumerics
-		0x2DE0, 0x2DFF, // Cyrillic Extended-A
-		0x2E80, 0x2EFF, // CJK Radicals Supplement
-		0x3000, 0x30FF, // CJK Symbols and Punctuations, Hiragana, Katakana
-		0x31F0, 0x31FF, // Katakana Phonetic Extensions
-		0x3400, 0x4DBF, // CJK Rare
-		0x4E00, 0x9FFF, // CJK Ideograms
-		0xA640, 0xA69F, // Cyrillic Extended-B
-		0xF900, 0xFAFF, // CJK Compatibility Ideographs
-		0xFF00, 0xFFEF, // Half-width characters
-		0,
-	};
-
-	static const ImWchar arabic[] = { // Arabic
-		0x0020, 0x00FF, // Basic Latin + Latin Supplement
-		0x0100, 0x024F, // Latin Extended
-		0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
-		0x1E00, 0x1EFF, // Latin Extended Additional
-		0x2000, 0x206F, // General Punctuation
-		0x2100, 0x214F, // Letterlike Symbols
-		0x2460, 0x24FF, // Enclosed Alphanumerics
-		0x0600, 0x06FF, // Arabic
-		0x0750, 0x077F, // Arabic Supplement
-		0x0870, 0x089F, // Arabic Extended-B
-		0x08A0, 0x08FF, // Arabic Extended-A
-		0xFB50, 0xFDFF, // Arabic Presentation Forms-A
-		0xFE70, 0xFEFF, // Arabic Presentation Forms-B
-		0,
-	};
-
-	static const ImWchar fa_icons[] {
-		0xF07B, 0xF07B, // folder
-		0xF65E, 0xF65E, // new folder
-		0xF15B, 0xF15B, // file
-		0xF021, 0xF021, // refresh
-		0xF0CA, 0xF0CA, // select all
-		0xF0C9, 0xF0C9, // unselect all
-		0x2700, 0x2700, // cut
-		0xF0C5, 0xF0C5, // copy
-		0xF0EA, 0xF0EA, // paste
-		0xF31C, 0xF31C, // edit
-		0xE0AC, 0xE0AC, // rename
-		0xE5A1, 0xE5A1, // delete
-		0xF002, 0xF002, // search
-		0xF013, 0xF013, // settings
-		0xF0ED, 0xF0ED, // download
-		0xF0EE, 0xF0EE, // upload
-		0xF56E, 0xF56E, // extract
-		0xF56F, 0xF56F, // compress
-		0xF0F6, 0xF0F6, // properties
-		0xF112, 0xF112, // cancel
-		0xF0DA, 0xF0DA, // arrow right
-		0x0031, 0x0031, // 1
-		0x004C, 0x004C, // L
-		0x0052, 0x0052, // R
-		0,
-	};
-
-	static const ImWchar of_icons[] {
-		0xE0CB, 0xE0CB, // square
-		0xE0DE, 0xE0DE, // triangle
-		0,
-	};
-
-	std::string lang = std::string(language);
-	int32_t lang_idx = 0;
-	//sceSystemServiceParamGetInt( ORBIS_SYSTEM_SERVICE_PARAM_ID_LANG, &lang_idx );
-
-	lang = Util::Trim(lang, " ");
-	//bool use_system_lang = lang.empty() || lang.compare("Default") == 0;
-
-	if (lang.compare("Korean") == 0) // || (use_system_lang && lang_idx == ORBIS_SYSTEM_PARAM_LANG_KOREAN))
+	if (CheckServerRunning())
 	{
-		io.Fonts->AddFontFromFileTTF("/data/homebrew/ezremote-client/assets/fonts/Roboto_ext.ttf", 26.0f, NULL, io.Fonts->GetGlyphRangesKorean());
+		dbglogger_log("Server already running.");
+		return 0;
 	}
-	else if (lang.compare("Simplified Chinese") == 0) // || (use_system_lang && lang_idx == ORBIS_SYSTEM_PARAM_LANG_CHINESE_S))
-	{
-		ImFontConfig config;
-		config.OversampleH = 1;
-		config.OversampleV = 1;
-		io.Fonts->AddFontFromFileTTF("/data/homebrew/ezremote-client/assets/fonts/Roboto_ext.ttf", 26.0f, &config, io.Fonts->GetGlyphRangesChineseFull());
-	}
-	else if (lang.compare("Traditional Chinese") == 0) // || (use_system_lang && lang_idx == ORBIS_SYSTEM_PARAM_LANG_CHINESE_T))
-	{
-		ImFontConfig config;
-		config.OversampleH = 1;
-		config.OversampleV = 1;
-		io.Fonts->AddFontFromFileTTF("/data/homebrew/ezremote-client/assets/fonts/Roboto_ext.ttf", 26.0f, &config, io.Fonts->GetGlyphRangesChineseFull());
-	}
-	else if (lang.compare("Japanese") == 0) // || lang.compare("Ryukyuan") == 0 || (use_system_lang && lang_idx == ORBIS_SYSTEM_PARAM_LANG_JAPANESE))
-	{
-		io.Fonts->AddFontFromFileTTF("/data/homebrew/ezremote-client/assets/fonts/Roboto_ext.ttf", 26.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-	}
-	else if (lang.compare("Thai") == 0) // || (use_system_lang && lang_idx == ORBIS_SYSTEM_PARAM_LANG_THAI))
-	{
-		io.Fonts->AddFontFromFileTTF("/data/homebrew/ezremote-client/assets/fonts/Roboto_ext.ttf", 26.0f, NULL, io.Fonts->GetGlyphRangesThai());
-	}
-	else if (lang.compare("Vietnamese") == 0) // || (use_system_lang && lang_idx == ORBIS_SYSTEM_PARAM_LANG_VIETNAMESE))
-	{
-		io.Fonts->AddFontFromFileTTF("/data/homebrew/ezremote-client/assets/fonts/Roboto_ext.ttf", 26.0f, NULL, io.Fonts->GetGlyphRangesVietnamese());
-	}
-	else if (lang.compare("Greek") == 0) // || (use_system_lang && lang_idx == ORBIS_SYSTEM_PARAM_LANG_GREEK))
-	{
-		io.Fonts->AddFontFromFileTTF("/data/homebrew/ezremote-client/assets/fonts/Roboto_ext.ttf", 26.0f, NULL, io.Fonts->GetGlyphRangesGreek());
-	}
-	else if (lang.compare("Arabic") == 0) // || (use_system_lang && lang_idx == ORBIS_SYSTEM_PARAM_LANG_ARABIC))
-	{
-		io.Fonts->AddFontFromFileTTF("/data/homebrew/ezremote-client/assets/fonts/Roboto_ext.ttf", 26.0f, NULL, arabic);
-	}
-	else
-	{
-		io.Fonts->AddFontFromFileTTF("/data/homebrew/ezremote-client/assets/fonts/Roboto.ttf", 26.0f, NULL, ranges);
-	}
-	ImFontConfig config;
-	config.MergeMode = true;
-	config.GlyphMinAdvanceX = 13.0f; // Use if you want to make the icon monospaced
-	io.Fonts->AddFontFromFileTTF("/data/homebrew/ezremote-client/assets/fonts/fa-solid-900.ttf", 20.0f, &config, fa_icons);
-	io.Fonts->AddFontFromFileTTF("/data/homebrew/ezremote-client/assets/fonts/OpenFontIcons.ttf", 20.0f, &config, of_icons);
-	io.Fonts->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
-	io.Fonts->Build();
 
-	Lang::SetTranslation(lang_idx);
+	filefd = open(SERVER_ELF_PATH, O_RDONLY);
+	if (filefd == -1) goto err;
 
-	auto &style = ImGui::GetStyle();
-	style.AntiAliasedLinesUseTex = false;
-	style.AntiAliasedLines = true;
-	style.AntiAliasedFill = true;
-	style.WindowRounding = 1.0f;
-	style.FrameRounding = 2.0f;
-	style.GrabRounding = 2.0f;
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd == -1) goto err;
 
-	ImVec4* colors = style.Colors;
-	const ImVec4 bgColor           = ColorFromBytes(37, 37, 38);
-	const ImVec4 bgColorBlur       = ColorFromBytes(37, 37, 38, 170);
-	const ImVec4 lightBgColor      = ColorFromBytes(82, 82, 85);
-	const ImVec4 veryLightBgColor  = ColorFromBytes(90, 90, 95);
+	hostent = gethostbyname("127.0.0.1");
+	if (hostent == NULL) goto err;
 
-	const ImVec4 titleColor        = ColorFromBytes(10, 100, 142);
-	const ImVec4 panelColor        = ColorFromBytes(51, 51, 55);
-	const ImVec4 panelHoverColor   = ColorFromBytes(29, 151, 236);
-	const ImVec4 panelActiveColor  = ColorFromBytes(0, 119, 200);
+	in_addr = inet_addr(inet_ntoa(*(struct in_addr *)*(hostent->h_addr_list)));
+	if (in_addr == (in_addr_t)-1) goto err;
 
-	const ImVec4 textColor         = ColorFromBytes(255, 255, 255);
-	const ImVec4 textDisabledColor = ColorFromBytes(151, 151, 151);
-	const ImVec4 borderColor       = ColorFromBytes(78, 78, 78);
+	sockaddr_in.sin_addr.s_addr = in_addr;
+	sockaddr_in.sin_family = AF_INET;
+	sockaddr_in.sin_port = htons(server_port);
 
-	colors[ImGuiCol_Text]                 = textColor;
-	colors[ImGuiCol_TextDisabled]         = textDisabledColor;
-	colors[ImGuiCol_TextSelectedBg]       = panelActiveColor;
-	colors[ImGuiCol_WindowBg]             = bgColor;
-	colors[ImGuiCol_ChildBg]              = panelColor;
-	colors[ImGuiCol_PopupBg]              = bgColor;
-	colors[ImGuiCol_Border]               = borderColor;
-	colors[ImGuiCol_BorderShadow]         = borderColor;
-	colors[ImGuiCol_FrameBg]              = panelColor;
-	colors[ImGuiCol_FrameBgHovered]       = panelHoverColor;
-	colors[ImGuiCol_FrameBgActive]        = panelActiveColor;
-	colors[ImGuiCol_TitleBg]              = titleColor;
-	colors[ImGuiCol_TitleBgActive]        = titleColor;
-	colors[ImGuiCol_TitleBgCollapsed]     = titleColor;
-	colors[ImGuiCol_MenuBarBg]            = panelColor;
-	colors[ImGuiCol_ScrollbarBg]          = panelColor;
-	colors[ImGuiCol_ScrollbarGrab]        = lightBgColor;
-	colors[ImGuiCol_ScrollbarGrabHovered] = veryLightBgColor;
-	colors[ImGuiCol_ScrollbarGrabActive]  = veryLightBgColor;
-	colors[ImGuiCol_CheckMark]            = panelActiveColor;
-	colors[ImGuiCol_SliderGrab]           = panelHoverColor;
-	colors[ImGuiCol_SliderGrabActive]     = panelActiveColor;
-	colors[ImGuiCol_Button]               = panelColor;
-	colors[ImGuiCol_ButtonHovered]        = panelHoverColor;
-	colors[ImGuiCol_ButtonActive]         = panelHoverColor;
-	colors[ImGuiCol_Header]               = panelColor;
-	colors[ImGuiCol_HeaderHovered]        = panelHoverColor;
-	colors[ImGuiCol_HeaderActive]         = panelActiveColor;
-	colors[ImGuiCol_Separator]            = borderColor;
-	colors[ImGuiCol_SeparatorHovered]     = borderColor;
-	colors[ImGuiCol_SeparatorActive]      = borderColor;
-	colors[ImGuiCol_ResizeGrip]           = bgColor;
-	colors[ImGuiCol_ResizeGripHovered]    = panelColor;
-	colors[ImGuiCol_ResizeGripActive]     = lightBgColor;
-	colors[ImGuiCol_PlotLines]            = panelActiveColor;
-	colors[ImGuiCol_PlotLinesHovered]     = panelHoverColor;
-	colors[ImGuiCol_PlotHistogram]        = panelActiveColor;
-	colors[ImGuiCol_PlotHistogramHovered] = panelHoverColor;
-	colors[ImGuiCol_ModalWindowDimBg]     = bgColorBlur;
-	colors[ImGuiCol_DragDropTarget]       = bgColor;
-	colors[ImGuiCol_NavHighlight]         = titleColor;
-	colors[ImGuiCol_Tab]                  = bgColor;
-	colors[ImGuiCol_TabActive]            = panelActiveColor;
-	colors[ImGuiCol_TabUnfocused]         = bgColor;
-	colors[ImGuiCol_TabUnfocusedActive]   = panelActiveColor;
-	colors[ImGuiCol_TabHovered]           = panelHoverColor;
+	if (connect(sockfd, (struct sockaddr *)&sockaddr_in, sizeof(sockaddr_in)) == -1) goto err;
+
+	while (1)
+	{
+		read_return = read(filefd, buffer, 8192);
+		if (read_return == 0) break;
+		if (read_return == -1) goto err;
+		if (write(sockfd, buffer, read_return) == -1) goto err;
+	}
+
+	close(filefd);
+	close(sockfd);
+	return 0;
+
+err:
+	if (filefd != -1) close(filefd);
+	if (sockfd != -1) close(sockfd);
+	return -1;
 }
 
 static void terminate()
@@ -463,34 +283,36 @@ static void terminate()
 
 int main()
 {
-	// No buffering
 	setvbuf(stdout, NULL, _IONBF, 0);
 
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
+	signal(SIGINT, signal_handler);
+	signal(SIGTERM, signal_handler);
+
+	// Ensure the base directory exists before initializing logger
+	FS::MkDirs(DATA_PATH);
+	dbglogger_init_str("file:/data/homebrew/ezremote-client/client.log");
+	dbglogger_log("ezRemote Client bootstrapper starting...");
+
+	if (sceNetInit() != 0)
 	{
+		dbglogger_log("sceNetInit failed!");
 		return -1;
 	}
-
-	if (sceNetInit() != 0) return -1;
 	if ((g_libnetMemId=sceNetPoolCreate("ezremote_client", NET_HEAP_SIZE, 0)) < 0)
 	{
+		dbglogger_log("sceNetPoolCreate failed!");
 		return -1;
 	}
 
 	if (FS::IsFolder(DATA_PATH) == 0)
 	{
-		Util::Notify("ezRemote Client data path is not a directory");
+		dbglogger_log("ezRemote Client data path is not a directory");
+		printf("ezRemote Client data path is not a directory\n");
 		return -1;
 	}
 
 	bool needs_bootstrap = AppDataNeedsBootstrap();
-	if (needs_bootstrap)
-	{
-		FS::MkDirs(DATA_PATH);
-	}
-
-	dbglogger_init_str("file:/data/homebrew/ezremote-client/client.log");
-	dbglogger_log("ezRemote Client started.");
+	dbglogger_log("AppDataNeedsBootstrap returned: %d", needs_bootstrap);
 
 	if (needs_bootstrap && !BootstrapAppData() && !AppDataHasUiFiles())
 	{
@@ -498,35 +320,28 @@ int main()
 		return -1;
 	}
 
-	CONFIG::LoadConfig();
-	HttpServer::Start();
-	INSTALLER::StartEzRemoteServer();
+	StartEzRemoteServer();
 
-	// Create a window context
-	window = SDL_CreateWindow("main", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, FRAME_WIDTH, FRAME_HEIGHT, 0);
-	if (window == NULL)
-		return 0;
+	dbglogger_log("Waiting for ezRemote Server to start...");
+	while (!CheckServerRunning())
+	{
+		sleep(1);
+	}
+	dbglogger_log("ezRemote Server is serving on port 6701.");
 
-	renderer = SDL_CreateRenderer(window, 0, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-	if (renderer == NULL)
-		return 0;
-
-	Textures::Init(renderer);
-	InitImgui();
-
-	// Setup Platform/Renderer backends
-	ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
-	ImGui_ImplSDLRenderer_Init(renderer);
-	ImGui_ImplSDLRenderer_CreateFontsTexture();
+	sceSystemServiceLaunchWebBrowser("http://127.0.0.1:6701");
 
 	atexit(terminate);
 
-	GUI::RenderLoop(renderer);
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
-	Textures::Exit();
+	dbglogger_log("Bootstrapping complete. Server injected successfully. Main loop waiting...");
+	printf("ezRemote Server is running.\nOpen your browser to the PS5's IP address on port 6701.\n");
 
-	ImGui::DestroyContext();
+	while (!done)
+	{
+		sleep(1);
+	}
+
+	dbglogger_log("ezRemote Client shutting down.");
 
 	return 0;
 }

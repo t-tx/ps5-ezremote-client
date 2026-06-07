@@ -313,7 +313,7 @@ const GameIconPreview = ({ file, iconUrl, gameCode, position, directoryPreview, 
   );
 };
 
-const FileCard = memo(({ file, currentPath, siteIdx, formatSize, onNavigate, onFileClick }) => {
+const FileCard = memo(({ file, currentPath, siteIdx, formatSize, onNavigate, onFileClick, onFileLongPress }) => {
   const cardRef = useRef(null);
   const [ref, isIntersecting] = useIntersectionObserver({ rootMargin: '200px' });
   const [iconUrl, setIconUrl] = useGameIcon(file, currentPath, siteIdx);
@@ -427,13 +427,12 @@ const FileCard = memo(({ file, currentPath, siteIdx, formatSize, onNavigate, onF
   const longPressTimer = useRef(null);
   const isLongPress = useRef(false);
 
-  const handlePointerDown = () => {
+  const handlePointerDown = (event) => {
+    if (event.button && event.button !== 0) return;
     isLongPress.current = false;
     longPressTimer.current = setTimeout(() => {
       isLongPress.current = true;
-      if (file.type === 'dir') {
-        onFileClick(file);
-      }
+      onFileLongPress(file);
     }, 600);
   };
 
@@ -467,10 +466,8 @@ const FileCard = memo(({ file, currentPath, siteIdx, formatSize, onNavigate, onF
       onPointerCancel={handlePointerUpOrCancel}
       onPointerLeave={handlePointerUpOrCancel}
       onContextMenu={(e) => {
-        if (file.type === 'dir') {
-          e.preventDefault();
-          onFileClick(file);
-        }
+        e.preventDefault();
+        onFileClick(file);
       }}
       onKeyDown={(e) => handleKeyDown(e, () => file.type === 'dir' ? onNavigate(file.name) : onFileClick(file))}
       className={cn(
@@ -542,7 +539,7 @@ const FileCard = memo(({ file, currentPath, siteIdx, formatSize, onNavigate, onF
   );
 });
 
-const FileList = ({ files, isLoading, currentPath, siteIdx, onNavigate, onFileClick }) => {
+const FileList = ({ files, isLoading, currentPath, siteIdx, onNavigate, onFileClick, onFileLongPress = onFileClick }) => {
 
   const formatSize = (size) => {
     if (!size || size === '') return '--';
@@ -590,6 +587,7 @@ const FileList = ({ files, isLoading, currentPath, siteIdx, onNavigate, onFileCl
           formatSize={formatSize}
           onNavigate={onNavigate}
           onFileClick={onFileClick}
+          onFileLongPress={onFileLongPress}
         />
       ))}
     </div>

@@ -1,5 +1,5 @@
 export const PS5_IP = import.meta.env.VITE_PS5_IP || window.location.hostname;
-export const MAIN_PORT = import.meta.env.VITE_MAIN_PORT || 9090;
+export const MAIN_PORT = import.meta.env.VITE_MAIN_PORT || 6701;
 export const DAEMON_PORT = import.meta.env.VITE_DAEMON_PORT || 6701;
 
 // Helper to get absolute URLs for API endpoints

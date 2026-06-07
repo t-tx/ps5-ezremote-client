@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Breadcrumbs from '../components/FileManager/Breadcrumbs';
 import FileList, { directoryPreviewCache, directoryPreviewKey } from '../components/FileManager/FileList';
 import UploadArea from '../components/FileManager/UploadArea';
-import { listFiles, listRemoteFiles, getSites, createFolder, createRemoteFolder, removeItems, removeRemoteItems, renameItem, renameRemoteItem, installPackages, installRemotePackages, getPkgInfo, downloadRemoteItem, extractItem, extractRemoteItem, checkLocalExists } from '../utils/api';
+import { listFiles, listRemoteFiles, getSites, createFolder, createRemoteFolder, removeItems, removeRemoteItems, renameItem, renameRemoteItem, installPackages, installRemotePackages, getPkgInfo, downloadRemoteItem, extractItem, extractRemoteItem, checkLocalExists, moveItems, copyItems } from '../utils/api';
 import { getMainUrl } from '../config';
-import { RefreshCw, FolderPlus, Globe } from 'lucide-react';
+import { RefreshCw, FolderPlus, Globe, Plus } from 'lucide-react';
 import PkgInfoModal from '../components/FileManager/PkgInfoModal';
 import FileActionModal from '../components/FileManager/FileActionModal';
 import DestinationModal from '../components/FileManager/DestinationModal';
 import OverwriteModal from '../components/FileManager/OverwriteModal';
+import AddSiteModal from '../components/FileManager/AddSiteModal';
 import { toast } from 'react-hot-toast';
 
 const LOCATION_STORAGE_KEYS = {
@@ -68,6 +69,27 @@ const joinPath = (basePath, name) => {
   return path === '/' ? `/${name}` : `${path}/${name}`;
 };
 
+const parentPath = (path) => {
+  const parts = normalizePath(path).split('/').filter(Boolean);
+  parts.pop();
+  return parts.length ? `/${parts.join('/')}` : '/';
+};
+
+const validateFileOperationDestination = (action, file, fullPath, destination) => {
+  const normalizedSource = normalizePath(fullPath);
+  const normalizedDestination = normalizePath(destination);
+
+  if (normalizedDestination === parentPath(normalizedSource)) {
+    return `Choose a different destination folder for ${action}.`;
+  }
+
+  if (file.type === 'dir' && (normalizedDestination === normalizedSource || normalizedDestination.startsWith(`${normalizedSource}/`))) {
+    return `Cannot ${action.toLowerCase()} a folder into itself.`;
+  }
+
+  return '';
+};
+
 const isPkgName = (name) => /\.pkg$/i.test(String(name || ''));
 
 const FileManagerView = ({ isRemote = false }) => {
@@ -93,6 +115,7 @@ const FileManagerView = ({ isRemote = false }) => {
   const [destModalFile, setDestModalFile] = useState(null);
   
   const [overwriteModalData, setOverwriteModalData] = useState({ isOpen: false, destination: '', expectedDest: '', action: null, file: null, fullPath: '' });
+  const [addSiteModalOpen, setAddSiteModalOpen] = useState(false);
 
   const fetchFiles = async (path, siteIdx = selectedSite, options = {}) => {
     const nextPath = normalizePath(path);
@@ -273,6 +296,26 @@ const FileManagerView = ({ isRemote = false }) => {
     setDestModalOpen(true);
   };
 
+  const handleCut = (file) => {
+    if (selectedSite !== null) {
+      toast.error('Cut is available for local files only.');
+      return;
+    }
+    setDestModalFile(file);
+    setDestModalAction('Cut');
+    setDestModalOpen(true);
+  };
+
+  const handleCopy = (file) => {
+    if (selectedSite !== null) {
+      toast.error('Copy is available for local files only.');
+      return;
+    }
+    setDestModalFile(file);
+    setDestModalAction('Copy');
+    setDestModalOpen(true);
+  };
+
   const confirmDestinationAction = async (destination) => {
     setDestModalOpen(false);
     if (!destModalFile || !destModalAction) return;
@@ -301,25 +344,38 @@ const FileManagerView = ({ isRemote = false }) => {
   };
 
   const executeDestAction = async (action, file, fullPath, destination) => {
+    const normalizedDestination = normalizePath(destination);
     try {
       if (action === 'Download') {
-        await downloadRemoteItem(selectedSite, fullPath, destination, file.type === 'dir');
-        toast.success(`${file.name} download started to ${destination}!`);
+        await downloadRemoteItem(selectedSite, fullPath, normalizedDestination, file.type === 'dir');
+        toast.success(`${file.name} download started to ${normalizedDestination}!`);
       } else if (action === 'Extract') {
         const folderName = file.name.replace(/\.[^/.]+$/, "");
         if (selectedSite !== null && selectedSite !== -1) {
-          await extractRemoteItem(selectedSite, fullPath, destination, folderName);
+          await extractRemoteItem(selectedSite, fullPath, normalizedDestination, folderName);
         } else {
-          await extractItem(fullPath, destination, folderName);
+          await extractItem(fullPath, normalizedDestination, folderName);
         }
         toast.success(`${file.name} extraction queued. Check Background Jobs for progress.`);
+      } else if (action === 'Cut' || action === 'Copy') {
+        if (selectedSite !== null) throw new Error(`${action} is available for local files only.`);
+
+        const validationError = validateFileOperationDestination(action, file, fullPath, normalizedDestination);
+        if (validationError) throw new Error(validationError);
+
+        if (action === 'Cut') {
+          await moveItems([fullPath], normalizedDestination);
+        } else {
+          await copyItems([fullPath], normalizedDestination);
+        }
+        toast.success(`${file.name} ${action === 'Cut' ? 'move' : 'copy'} queued to ${normalizedDestination}. Check Background Jobs for progress.`);
       }
     } catch (err) {
       if (err.message && err.message.startsWith('EXISTS:')) {
         const expectedDest = err.message.substring(7);
         setOverwriteModalData({
           isOpen: true,
-          destination,
+          destination: normalizedDestination,
           expectedDest,
           action,
           file,
@@ -445,6 +501,21 @@ const FileManagerView = ({ isRemote = false }) => {
         />
       )}
 
+      <AddSiteModal
+        isOpen={addSiteModalOpen}
+        onClose={() => setAddSiteModalOpen(false)}
+        onSiteAdded={async (siteIdx) => {
+          try {
+            const loadedSites = await getSites();
+            setSites(loadedSites);
+            setSelectedSite(siteIdx);
+            fetchFiles('/', siteIdx);
+          } catch (err) {
+            toast.error('Failed to reload sites');
+          }
+        }}
+      />
+
       <FileActionModal 
         isOpen={!!selectedFileForAction}
         file={selectedFileForAction}
@@ -452,31 +523,42 @@ const FileManagerView = ({ isRemote = false }) => {
         onClose={() => setSelectedFileForAction(null)}
         onDownload={handleDownload}
         onExtract={handleExtract}
-        onInstall={handleInstall}
-        onRename={handleRename}
-        onDelete={handleDelete}
-      />
+          onInstall={handleInstall}
+          onRename={handleRename}
+          onDelete={handleDelete}
+          onCut={handleCut}
+          onCopy={handleCopy}
+        />
       <div className="flex items-center justify-between mb-2 flex-wrap gap-4">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold text-white tracking-tight">{isRemote ? "Remote Sites" : "Local Storage"}</h1>
           {isRemote && (
-            <div className="relative">
-              <select
-                value={selectedSite === null || selectedSite === -1 ? "" : selectedSite}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setSelectedSite(val);
-                  fetchFiles('/', val);
-                }}
-                className="appearance-none bg-ps-card border border-ps-border hover:border-ps-blue focus:border-ps-blue text-white text-sm rounded-xl px-4 py-2 pr-10 focus:outline-none focus:ring-4 focus:ring-ps-blue/30 transition-all font-medium"
-              >
-                {sites.map(site => (
-                  <option key={site.index} value={site.index}>{site.name} ({site.server})</option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                <Globe className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <select
+                  value={selectedSite === null || selectedSite === -1 ? "" : selectedSite}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setSelectedSite(val);
+                    fetchFiles('/', val);
+                  }}
+                  className="appearance-none bg-ps-card border border-ps-border hover:border-ps-blue focus:border-ps-blue text-white text-sm rounded-xl px-4 py-2 pr-10 focus:outline-none focus:ring-4 focus:ring-ps-blue/30 transition-all font-medium"
+                >
+                  {sites.map(site => (
+                    <option key={site.index} value={site.index}>{site.name} ({site.server})</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                  <Globe className="w-4 h-4" />
+                </div>
               </div>
+              <button
+                onClick={() => setAddSiteModalOpen(true)}
+                className="p-2 bg-ps-card border border-ps-border hover:border-ps-blue hover:text-ps-blue focus:outline-none focus:ring-4 focus:ring-ps-blue/30 text-zinc-400 rounded-xl transition-all"
+                title="Add Remote Site"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
             </div>
           )}
         </div>
@@ -535,6 +617,7 @@ const FileManagerView = ({ isRemote = false }) => {
         siteIdx={selectedSite === -1 ? null : selectedSite}
         onNavigate={handleNavigate}
         onFileClick={(file) => setSelectedFileForAction(file)}
+        onFileLongPress={(file) => setSelectedFileForAction(file)}
       />
 
       {selectedSite === null && (

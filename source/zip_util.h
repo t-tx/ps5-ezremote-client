@@ -28,30 +28,19 @@ enum CompressFileType {
     COMPRESS_FILE_TYPE_UNKNOWN
 };
 
-struct RemoteArchiveData
-{
-    void *fp;
-    std::string path;
-    uint64_t size;
-    uint64_t offset;
-    uint8_t buf[ARCHIVE_TRANSFER_SIZE];
-    RemoteClient *client;
-};
-
 struct ArchiveEntry
 {
     struct archive *archive;
     struct archive_entry *entry;
     std::string filename;
     size_t filesize;
-    RemoteArchiveData *client_data;
 };
 
 namespace ZipUtil
 {
     int ZipAddPath(zipFile zf, const std::string &path, int filename_start, int level);
-    int Extract(const DirEntry &file, const std::string &dir, RemoteClient *client = nullptr);
-    ArchiveEntry *GetPackageEntry(const std::string &zip_file, RemoteClient *client = nullptr);
+    int Extract(const DirEntry &file, const std::string &dir, bool* cancel_flag = nullptr);
+    ArchiveEntry *GetPackageEntry(const std::string &zip_file);
     ArchiveEntry *GetNextPackageEntry(ArchiveEntry *archive_entry);
 }
 #endif

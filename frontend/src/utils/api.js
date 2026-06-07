@@ -30,6 +30,9 @@ export const getSites = async () => {
   return data.result || [];
 };
 
+export const saveRemoteSite = (siteData) =>
+  fetchApi('/api/sitesave', siteData);
+
 export const listRemoteFiles = (site_idx, path) =>
   fetchApi('/api/sitelist', { site_idx, path });
   

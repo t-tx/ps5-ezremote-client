@@ -25,12 +25,13 @@ ezRemote Client is an application that allows you to connect the PS5 to remote F
 ![Preview](/ezremote_client_web.png)
 
 ## Installation
-1. Extract the **ezremote_client.zip** in to the **/data/homebrew** folder on the PS5.
-2. Must load websrv payload. You won't be able to start ezRemote Client without this.
-3. Install PS-ezRemoteClient.pkg (This create a shortcut on the dashboard to launch the app directly via websrv)
+1. Download **ezremote-client.elf** from the latest release and launch it with websrv. On first start, if `/data/homebrew/ezremote-client` does not exist, the app downloads **ezremote_client.zip** from the latest GitHub release and extracts it there automatically.
+2. For manual installation, extract the contents of **ezremote_client.zip** into `/data/homebrew/ezremote-client` on the PS5.
+3. Must load websrv payload. You won't be able to start ezRemote Client without this.
+4. Install PS-ezRemoteClient.pkg (This create a shortcut on the dashboard to launch the app directly via websrv)
 
 ## Updating the app
-1. Download the latest version from Releases and extract the **ezremote_client.zip** in to the **/data/homebrew** folder on the PS5 replacing everything. This will not overwrite any of your configs.
+1. Download the latest version from Releases and extract the contents of **ezremote_client.zip** into `/data/homebrew/ezremote-client` replacing everything. This will not overwrite any of your configs.
    
 ## Know Issues
 <s>- Occasionally the app would crash if you cancelled the pkg install. This could leave some temporary files created in the "/data/homebrew/ezremote-client/tmp" folder. It is safe to delete them.</s>
@@ -245,3 +246,10 @@ Ensure that you have the PS5 Payload SDK set up and the `PS5_PAYLOAD_SDK` enviro
     ```bash
     make clean
     ```
+
+4.  **Release:**
+    To package and upload a GitHub release, run:
+    ```bash
+    make release VERSION=vX.YY
+    ```
+    The release target copies every `.elf` output from `build/` into `data/`, zips the contents of `data/` into `ezremote_client.zip`, and uploads that zip together with `ezremote-client.elf`.

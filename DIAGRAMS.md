@@ -10,7 +10,7 @@ flowchart TB
     Repo --> RootBuild["Root build files\nCMakeLists.txt, Makefile"]
     Repo --> Source["source/\nmain native client"]
     Repo --> Data["data/\npackaged app data"]
-    Repo --> WebAssets["data/assets/\nAngular web UI, languages, fonts, certs"]
+    Repo --> WebAssets["data/assets/\nReact web UI, languages, fonts, certs"]
     Repo --> ServerPayload["ps5-ezremote-server/\nbackground install/download server"]
     Repo --> DpiPayload["ps5-ezremote-dpi/\nlegacy direct installer payload"]
     Repo --> Docs["README.md, architecture.md, IMPLEMENTATION.md, PLAN.md, EXPERIENCE.md"]
@@ -37,15 +37,15 @@ flowchart LR
     CMakeConfigure --> RootTarget["ezremote_client.elf"]
     CMakeConfigure --> ServerTarget["ps5-ezremote-server\nezremote-server.elf"]
 
-    RootTarget --> PackageTarget["cmake --build build --target package"]
-    ServerTarget --> PackageTarget
-    DataFiles["data/*"] --> PackageTarget
-    PackageTarget --> Strip["prospero-strip client and server ELFs"]
-    Strip --> AppDir["ezremote-client/"]
-    AppDir --> Zip["ezremote-client.zip"]
+    RootTarget --> ReleaseTarget["make release VERSION=vX.YY"]
+    ServerTarget --> ReleaseTarget
+    DataFiles["data/*"] --> ReleaseTarget
+    ReleaseTarget --> CopyElf["copy build/**/*.elf into data/"]
+    CopyElf --> DataZip["ezremote_client.zip\ncontents of data/"]
+    RootTarget --> ClientElf["ezremote-client.elf\nseparate release asset"]
 
     DpiSubproject["ps5-ezremote-dpi\nezremote-dpi.elf"] -.->|separate subproject| SDK
-    DpiSubproject -.->|not copied by root package target| AppDir
+    DpiSubproject -.->|copied if present under build/| CopyElf
 ```
 
 ## 3. Native Client Runtime Architecture
@@ -317,7 +317,7 @@ sequenceDiagram
     participant Browser as Browser
     participant ClientHttp as ezremote_client HTTP 9090
     participant Assets as Packaged assets
-    participant Angular as Angular FileManager
+    participant React as React Web UI
     participant FS as Local FS
     participant Installer as Installer helpers
     participant Server as ezremote-server 6701
@@ -326,14 +326,14 @@ sequenceDiagram
     ClientHttp-->>Browser: redirect /index.html
     Browser->>ClientHttp: GET /index.html
     ClientHttp->>Assets: read assets/index.html
-    ClientHttp-->>Browser: Angular app shell
-    Browser->>ClientHttp: GET JS, CSS, fonts, images
-    Browser->>Angular: bootstrap angular-filemanager plus ezremote-ui.js
-    Angular->>ClientHttp: POST /__local__/list
+    ClientHttp-->>Browser: React app shell
+    Browser->>ClientHttp: GET public icons/appcache as needed
+    Browser->>React: start single-file React app
+    React->>ClientHttp: POST /__local__/list
     ClientHttp->>FS: ListDir
     FS-->>ClientHttp: entries
-    ClientHttp-->>Angular: file manager JSON
-    Angular->>ClientHttp: file action endpoint
+    ClientHttp-->>React: file manager JSON
+    React->>ClientHttp: file action endpoint
     ClientHttp->>FS: local operation
     ClientHttp->>Installer: optional install operation
     Installer->>Server: optional POST /install or /download_url
@@ -343,7 +343,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant Browser as Browser ezremote-ui.js
+    participant Browser as Browser React UI
     participant ClientHttp as Client HTTP 9090
     participant FS as FS namespace
 
@@ -631,7 +631,7 @@ flowchart TB
     DataPath --> GameIcons["game-icons/\nextracted package icons"]
     DataPath --> TmpSfo["tmp_pkg.sfo"]
     DataPath --> TmpIcon["tmp_icon.png"]
-    DataPath --> Logs["debug.log\nezremote-client.log"]
+    DataPath --> Logs["client.log\nserver.log"]
     DataPath --> Histories["pkg_install_history.json\nbg_download_history.json"]
 ```
 
@@ -639,20 +639,21 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    Index["data/assets/index.html"] --> Angular["angular-filemanager.min.js"]
-    Index --> Vendor["AngularJS, ng-file-upload, bootstrap"]
-    Index --> EzUi["res/ezremote-ui.js"]
-    Index --> Css["res/ezremote-ui.css"]
-    Index --> Langs["langs/*.ini"]
+    Assets["data/assets/"] --> Index["index.html"]
+    Assets --> Public["public icons\nfavicon.svg, icon.png, cache.appcache"]
+    Assets --> Langs["langs/*.ini\nnative UI translations"]
+    Assets --> Fonts["fonts/*.ttf\nnative UI fonts"]
+    Assets --> Certs["certs/cacert.pem"]
 
-    EzUi --> XhrPatch["XHR observer\ntoasts for /__local__ calls"]
-    EzUi --> NavFilter["root navigation filter\n/data and /mnt only"]
-    EzUi --> Search["recursive search and filters"]
-    EzUi --> UploadOverride["manual chunk upload\nconfigurable chunk MB"]
-    EzUi --> DropPkg["Drop PKG flow\nupload then install"]
-    EzUi --> Templates["template overrides\ntopbar, breadcrumbs, table, toasts"]
+    Index --> Bundle["inline React/Vite JS and CSS"]
+    Bundle --> Toasts["toasts for /__local__ calls"]
+    Bundle --> NavFilter["root navigation filter\n/data and /mnt only"]
+    Bundle --> Search["recursive search and filters"]
+    Bundle --> UploadOverride["chunk upload\nresume probes"]
+    Bundle --> DropPkg["Drop PKG flow\nupload then install"]
+    Bundle --> Layout["topbar, breadcrumbs, table, toasts"]
 
-    Angular --> LocalApi["/__local__/ endpoints"]
+    Bundle --> LocalApi["/__local__/ endpoints"]
     DropPkg --> LocalApi
     UploadOverride --> LocalApi
 ```
@@ -747,6 +748,6 @@ flowchart LR
     Work --> Result{"success?"}
     Result -->|"Yes"| Success["{ result: { success: true, error: null } }"]
     Result -->|"No"| Failure["{ result: { success: false, error: message } }"]
-    Success --> Angular["Angular FileManager and ezremote-ui.js"]
-    Failure --> Angular
+    Success --> React["React Web UI"]
+    Failure --> React
 ```

@@ -1,14 +1,14 @@
 # Web UI/UX Implementation Notes
 
-Implemented the `PLAN.md` web UI phase in `data/assets`.
+Implemented the `PLAN.md` web UI phase. The active Web UI is now the React single-file build packaged into `data/assets/index.html`.
 
 ## Files Changed
+- `frontend/src/...`
+- `frontend/public/...`
 - `data/assets/index.html`
-- `data/assets/res/ezremote-ui.css`
-- `data/assets/res/ezremote-ui.js`
 
 ## What Changed
-- Added a dedicated ezRemote UI layer loaded after the existing Angular file manager bundle.
+- Replaced the legacy add-on UI with the React Web UI.
 - Added a sticky top bar with current path, breadcrumb navigation, search, refresh, and view controls.
 - Added a compact icon action toolbar for create, upload, install, download, edit, organize, and remove actions.
 - Kept the item browser list-only and removed the grid/icon view toggle.

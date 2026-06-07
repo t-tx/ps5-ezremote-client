@@ -37,7 +37,7 @@ Interfaces with internal PS5 APIs (`SceAppInstUtil`) to install PS4 PKG files. I
 
 ### 6. Local HTTP Server (`source/server/http_server.cpp`)
 Embeds a local web server running on port `9090` using `cpp-httplib`.
-- **Web UI:** Serves an Angular-based web application (`data/assets/`) allowing users to manage files from a PC or mobile device.
+- **Web UI:** Serves a React-based web application (`data/assets/`) allowing users to manage files from a PC or mobile device.
 - **Upload/Download:** Handles chunked multipart uploads and file downloads.
 - **Proxy/Range Requests:** Acts as a bridge to stream files from remote servers to the PS5 installer, translating HTTP Range requests into appropriate `libcurl` calls.
 
@@ -67,4 +67,4 @@ Embeds a local web server running on port `9090` using `cpp-httplib`.
 The codebase is generally well-organized by feature:
 - Adding a new protocol means inheriting from `BaseClient` and dropping the implementation into `source/clients/`.
 - Adding GUI elements means modifying `windows.cpp` using ImGui patterns.
-- Changing the Web UI requires modifying the AngularJS files located in `data/assets/res/`.
+- Changing the Web UI requires modifying the React source in `frontend/`, rebuilding it, and syncing the packaged output into `data/assets/`.

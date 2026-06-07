@@ -4,7 +4,7 @@ RELEASE_ZIP := ezremote_client.zip
 CLIENT_ELF := build/ezremote_client.elf
 CLIENT_RELEASE_ELF := build/ezremote-client.elf
 SERVER_ELF := build/ps5-ezremote-server/ezremote-server.elf
-RELEASE_ASSETS := $(RELEASE_ZIP) $(SERVER_ELF) $(CLIENT_RELEASE_ELF)
+RELEASE_ASSETS := $(RELEASE_ZIP) $(CLIENT_RELEASE_ELF)
 
 all: build
 
@@ -38,36 +38,41 @@ frontend:
 	@cd frontend && export PATH=/workspace/node-v22.14.0-linux-x64/bin:$$PATH && npm install
 	@cd frontend && export PATH=/workspace/node-v22.14.0-linux-x64/bin:$$PATH && npm run build
 
-sync-frontend:
-	@echo "Deploying frontend assets locally..."
-	@mkdir -p data/assets
-	@cp -r frontend/dist/* data/assets/
+sync-frontend: frontend-local
 	@echo "Uploading frontend assets to PS5 via FTP..."
 	@cd data/assets && find . -type f -exec sh -c 'for file do file=$${file#./}; dir=$${file%/*}; if [ "$$dir" = "$$file" ]; then remote_dir="ftp://192.168.50.235:2121/data/homebrew/ezremote-client/assets/"; else remote_dir="ftp://192.168.50.235:2121/data/homebrew/ezremote-client/assets/$$dir/"; fi; curl --silent --show-error --fail --ftp-create-dirs -T "$$file" "$$remote_dir" --user anonymous:anonymous >/dev/null || exit $$?; done' sh {} +
 	@echo "Frontend assets deployed."
 
+frontend-local: frontend
+	@echo "Deploying frontend assets locally..."
+	@rm -rf data/assets
+	@mkdir -p data/assets
+	@cp -r frontend/dist/* data/assets/
+
+sync-homebrew:
+	@echo "Syncing homebrew files..."
+	curl -T data/homebrew.js ftp://192.168.50.235:2121/data/homebrew/ezremote-client/homebrew.js --user anonymous:anonymous
+	@cd data/sce_sys && find . -type f -exec sh -c 'for file do file=$${file#./}; dir=$${file%/*}; if [ "$$dir" = "$$file" ]; then remote_dir="ftp://192.168.50.235:2121/data/homebrew/ezremote-client/sce_sys/"; else remote_dir="ftp://192.168.50.235:2121/data/homebrew/ezremote-client/sce_sys/$$dir/"; fi; curl --silent --show-error --fail --ftp-create-dirs -T "$$file" "$$remote_dir" --user anonymous:anonymous >/dev/null || exit $$?; done' sh {} +
+	@echo "Homebrew files synced."
 deploy-frontend: frontend sync-frontend
 all: deploy deploy-frontend
 	@echo "Deploying all! DONE"
 # Creates the release zip package. Usage: make zip
-zip: build
+zip: build frontend-local
 	@echo "Packaging release..."
-	@rm -rf tmp_release
 	@rm -f $(RELEASE_ZIP) $(CLIENT_RELEASE_ELF)
-	@mkdir -p tmp_release/ezremote-client
-	@cp -r data/* tmp_release/ezremote-client/
-	@cp $(SERVER_ELF) tmp_release/ezremote-client/
-	@cp $(CLIENT_ELF) tmp_release/ezremote-client/
+	@rm -f data/*.elf
+	@cp $(CLIENT_ELF) data/
+	@cp $(SERVER_ELF) data/
 	@cp $(CLIENT_ELF) $(CLIENT_RELEASE_ELF)
-	@cd tmp_release && zip -r ../$(RELEASE_ZIP) ezremote-client
-	@rm -rf tmp_release
+	@cd data && zip -r ../$(RELEASE_ZIP) .
 	@echo "Release assets ready: $(RELEASE_ASSETS)"
 
 # Creates a git tag and optionally publishes a GitHub Release using the gh CLI.
-# Usage: make release VERSION=v2.03
+# Usage: make release VERSION=vX.YY
 release:
 	@if [ -z "$(VERSION)" ]; then \
-		echo "Error: VERSION is not set. Usage: make release VERSION=v2.03"; \
+		echo "Error: VERSION is not set. Usage: make release VERSION=vX.YY"; \
 		exit 1; \
 	fi
 	$(MAKE) zip
